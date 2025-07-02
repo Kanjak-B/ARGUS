@@ -1,0 +1,86 @@
+{
+    "timestamp": "20250621_171518",
+    "devices": {
+        "AN-SW-ACC-01": {
+            "ip": "10.103.0.10",
+            "neighbors": [
+                {
+                    "name": "AN-SW-DIST-01",
+                    "local_interface": "Et3/3",
+                    "remote_interface": "Et0/0"
+                }
+            ]
+        },
+        "AN-SW-ACC-02": {
+            "ip": "10.103.0.11",
+            "neighbors": [
+                {
+                    "name": "AN-SW-DIST-01",
+                    "local_interface": "Et3/3",
+                    "remote_interface": "Et0/1"
+                }
+            ]
+        },
+        "AN-SW-ACC-03": {
+            "ip": "10.103.0.12",
+            "neighbors": [
+                {
+                    "name": "AN-SW-DIST-01",
+                    "local_interface": "Et3/3",
+                    "remote_interface": "Et0/2"
+                }
+            ]
+        },
+        "AN-SW-ACC-04": {
+            "ip": "10.103.0.13",
+            "neighbors": [
+                {
+                    "name": "AN-SW-DIST-01",
+                    "local_interface": "Et3/3",
+                    "remote_interface": "Et0/3"
+                }
+            ]
+        },
+        "AN-SW-ACC-5": {
+            "ip": "10.103.0.14",
+            "neighbors": [
+                {
+                    "name": "AN-SW-DIST-01",
+                    "local_interface": "Et3/3",
+                    "remote_interface": "Et1/0"
+                }
+            ]
+        },
+        "AN-SW-DIST-01": {
+            "ip": "10.103.0.100",
+            "neighbors": [
+                {
+                    "name": "AN-SW-ACC-04",
+                    "local_interface": "Et0/3",
+                    "remote_interface": "Et3/3"
+                },
+                {
+                    "name": "AN-SW-ACC-5",
+                    "local_interface": "Et1/0",
+                    "remote_interface": "Et3/3"
+                },
+                {
+                    "name": "AN-SW-ACC-01",
+                    "local_interface": "Et0/0",
+                    "remote_interface": "Et3/3"
+                },
+                {
+                    "name": "AN-SW-ACC-02",
+                    "local_interface": "Et0/1",
+                    "remote_interface": "Et3/3"
+                },
+                {
+                    "name": "AN-SW-ACC-03",
+                    "local_interface": "Et0/2",
+                    "remote_interface": "Et3/3"
+                }
+            ]
+        }
+    },
+    "failed_devices": []
+}

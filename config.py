@@ -11,7 +11,6 @@ DEVICES = [
     "10.103.0.13",
     "10.103.0.14",
     "10.103.0.100",
-    "10.103.0.254"
 ]
 
 # ============================================================================
@@ -22,7 +21,7 @@ DEVICES = [
 # Ces credentials seront utilisés pour tous les équipements
 DEFAULT_CREDENTIALS = {
     "username": "admin",
-    "password": "admin",
+    "password": "",
     "secret": "admin"  # Pour les équipements Cisco
 }
 

@@ -1,0 +1,46 @@
+
+=========== Dans Gitbash pour generate the key
+
+ssh-keygen -t rsa -b 2048 -m PEM
+(Enter) : Accepter le chemin par defaut
+(Enter) : Ne pas mettre de passphrase
+
+
+=========== Cote switch config ssh
+Switch(config)# hostname SW1
+Switch(config)# ip domain-name gns3.lab
+Switch(config)# crypto key generate rsa
+Switch(config)# ip ssh version 2
+Switch(config)# username admin privilege 15
+Switch(config)# line vty 0 15
+Switch(config-line)# login local
+Switch(config-line)# transport input ssh
+Switch(config-line)# exit
+
+========== Ajout de la key publique sur le switch
+
+Switch(config)# ip ssh pubkey-chain
+Switch(conf-ssh-pubkey)# username admin
+Switch(conf-ssh-pubkey-user)# key-string
+Switch(conf-ssh-pubkey-data)# ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDWPEp0dqQ3uFIbX0Eh3S3d11k+aa+G9dY2WWubPzcc2L0QUse5NmxsFwWyDGD6lBiq2d/
+Switch(conf-ssh-pubkey-data)# gwVUb6jbdjdKZChq6lh0jl44NS+Xvv05kaeDP45Kfsc4LKJcDE80SxNLQVtRXYqM+nStoLzZH6Dvlb1NoLk1bytF5pzmNBXSEHQ
+Switch(conf-ssh-pubkey-data)# oj3xuSkWY93VHdusPVCYQrV6Tn/jnUf/xQvhXC//DO7x3Bh+AhrC0Wm0/TH1kbhzOcjYfomSycrw2KfbNYPWjK5wPT2YLvPE71
+Switch(conf-ssh-pubkey-data)# jq99AO1QOJAHxN3Hyl19AkfWE8TJJ9045V2ftjQVq+hzvhVxkvIaAEOypvRzllGtskYyQPRAUpLF kanja@DESKTOP-H0F6UDP
+Switch(conf-ssh-pubkey-data)# exit
+Switch(conf-ssh-pubkey-user)# exit
+Switch(conf-ssh-pubkey)# exit
+
+
+========== Sur le switch, seulement apres avoir verifier que
+l'auth par key public fonctionne
+
+Switch(config)# no ip ssh password-auth
+
+
+========== Connexion cote client
+ssh admin@IP_DU_SWITCH
+
+========= En cas de souci : Pour pouvoir debugger
+
+ssh -vvv admin@IP_DU_SWITCH
+ 

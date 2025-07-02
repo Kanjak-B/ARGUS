@@ -1,0 +1,16 @@
+
+Switch(config)# hostname SW1                       ← (Facultatif, mais recommandé)
+Switch(config)# ip domain-name gns3.lab            ← (Obligatoire pour générer la clé RSA)
+Switch(config)# crypto key generate rsa           ← (Choisis 1024 ou 2048 bits)
+Switch(config)# ip ssh version 2
+
+Switch(config)# username admin privilege 15 secret motdepasse
+
+Switch(config)# line vty 0 15
+Switch(config-line)# login local
+Switch(config-line)# transport input ssh
+Switch(config-line)# exit
+
+===== Connexion cote client
+
+ssh admin@IP_DU_SWITCH
