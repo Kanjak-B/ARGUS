@@ -45,9 +45,6 @@ Le système est divisé en plusieurs modules (ou couches) :
 ## 🚀 Lancer le système
 
 1. Cloner le dépôt :
-   ```bash
-   git clone https://github.com/ton-username/nom-du-depot.git
-   cd nom-du-depot
 
 Installer les dépendances :
 
