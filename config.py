@@ -5,12 +5,14 @@
 # Liste des adresses IP des équipements réseau à interroger
 # L'administrateur n'a qu'à ajouter ou retirer des IP ici
 DEVICES = [
-    "10.103.0.10",
-    "10.103.0.11",
-    "10.103.0.12",
-    "10.103.0.13",
-    "10.103.0.14",
-    "10.103.0.100",
+    "10.20.30.100",
+    "10.20.30.101",
+    # "10.103.0.10",
+    # "10.103.0.11",
+    # "10.103.0.12",
+    # "10.103.0.13",
+    # "10.103.0.14",
+    # "10.103.0.100",
 ]
 
 # ============================================================================
@@ -21,7 +23,7 @@ DEVICES = [
 # Ces credentials seront utilisés pour tous les équipements
 DEFAULT_CREDENTIALS = {
     "username": "admin",
-    "password": "",
+    "password": "admin",
     "secret": "admin"  # Pour les équipements Cisco
 }
 
