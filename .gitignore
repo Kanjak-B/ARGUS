@@ -21,6 +21,10 @@ topologies/
 # Application database
 data/
 
+# Frontend
+node_modules/
+frontend/dist/
+
 # Packaging
 *.egg-info/
 build/

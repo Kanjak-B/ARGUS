@@ -1,6 +1,8 @@
 import asyncio
+import contextlib
 import dataclasses
 import io
+import sqlite3
 import tempfile
 import unittest
 from pathlib import Path
@@ -71,6 +73,31 @@ class GraphTests(unittest.TestCase):
             {"SW1": "ok", "SW2": "failed", "192.0.2.3": "pending", "PC": "unmanaged"},
         )
 
+    def test_layers_from_role_then_name_then_links(self):
+        inventory = [
+            {"ip": "192.0.2.1", "hostname": "SW-DST-01"},
+            {"ip": "192.0.2.2", "hostname": "SW-ACC-01", "role": "core"},
+            {"ip": "192.0.2.3", "hostname": "Switch"},
+        ]
+        topology = fake_topology(
+            {
+                "SW-DST-01": ("192.0.2.1", [link("Et0/0", "SW-ACC-01", "Et3/3")]),
+                "SW-ACC-01": ("192.0.2.2", []),
+                "Switch": ("192.0.2.3", [link("e1", "PC1", "e0"), link("e2", "CORE2", "e0")]),
+            }
+        )
+        nodes = build_graph(inventory, topology)["nodes"]
+        self.assertEqual(
+            {node["id"]: node["layer"] for node in nodes},
+            {
+                "SW-DST-01": "distribution",
+                "SW-ACC-01": "core",
+                "Switch": "distribution",
+                "PC1": "access",
+                "CORE2": "core",
+            },
+        )
+
     def test_before_first_scan(self):
         graph = build_graph(self.INVENTORY, None)
         self.assertEqual({node["status"] for node in graph["nodes"]}, {"pending"})
@@ -102,6 +129,7 @@ class AuthTests(WebTestCase):
             ("get", "/api/devices"),
             ("post", "/api/devices"),
             ("delete", "/api/devices/1"),
+            ("patch", "/api/devices/1"),
             ("get", "/api/topology"),
             ("get", "/api/changes"),
             ("post", "/api/scan"),
@@ -140,6 +168,29 @@ class DeviceTests(WebTestCase):
         for ip in ("", "switch-01", "999.0.0.1", "-n 5", "192.0.2.0/24"):
             with self.subTest(ip=ip):
                 self.assertEqual(self.add(ip).status_code, 422)
+
+    def test_role_can_be_set_and_reset(self):
+        url = f"/api/devices/{self.add('192.0.2.1').json()['id']}"
+        self.assertEqual(self.client.patch(url, json={"role": "core"}).status_code, 204)
+        (device,) = self.client.get("/api/devices").json()
+        self.assertEqual((device["role"], device["layer"]), ("core", "core"))
+        self.assertEqual(self.client.patch(url, json={"role": None}).status_code, 204)
+        self.assertEqual(self.client.get("/api/devices").json()[0]["layer"], "access")
+        self.assertEqual(self.client.patch(url, json={"role": "boss"}).status_code, 422)
+        self.assertEqual(
+            self.client.patch("/api/devices/999", json={"role": None}).status_code, 404
+        )
+
+    def test_database_without_role_column_is_migrated(self):
+        path = self.db.path.with_name("old.db")
+        with contextlib.closing(sqlite3.connect(path)) as conn, conn:
+            conn.execute(
+                "CREATE TABLE devices (id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                "ip TEXT NOT NULL UNIQUE, hostname TEXT, created_at TEXT NOT NULL)"
+            )
+            conn.execute("INSERT INTO devices (ip, created_at) VALUES ('192.0.2.9', 'x')")
+        (device,) = Database(path).list_devices()
+        self.assertEqual((device["ip"], device["role"]), ("192.0.2.9", None))
 
     def test_delete(self):
         device_id = self.add("192.0.2.1").json()["id"]
@@ -199,6 +250,23 @@ class ScanCycleTests(WebTestCase):
         rows = list(load_workbook(io.BytesIO(content)).active.values)
         self.assertEqual(rows[1], ("SW1", "192.0.2.1", "SW2", "Gi0/1", "Gi0/0", "LLDP"))
         self.assertEqual(self.client.get("/api/export/png").status_code, 404)
+
+
+class FrontendTests(unittest.TestCase):
+    def test_build_is_served_without_hiding_the_api(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            Path(tmp, "index.html").write_text("<title>ARGUS</title>", encoding="utf-8")
+            db = Database(Path(tmp) / "a.db")
+            settings = make_settings()
+            app = create_app(
+                settings, db, Scanner(settings, db), run_scanner=False, frontend_dir=Path(tmp)
+            )
+            client = TestClient(app)
+
+            self.assertIn("ARGUS", client.get("/").text)
+            self.assertEqual(client.get("/api/devices").status_code, 401)
+            self.assertEqual(client.get("/docs").status_code, 200)
+            self.assertEqual(client.get("/../pyproject.toml").status_code, 404)
 
 
 class EventStreamTests(unittest.TestCase):

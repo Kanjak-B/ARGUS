@@ -1,0 +1,39 @@
+@import 'tailwindcss';
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  @apply min-h-screen bg-slate-950 font-sans text-slate-200 antialiased;
+}
+
+button:not(:disabled) {
+  cursor: pointer;
+}
+
+@utility panel {
+  @apply rounded-2xl border border-white/10 bg-slate-900/60 shadow-xl shadow-black/20 backdrop-blur;
+}
+
+@utility btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-400 disabled:opacity-50;
+}
+
+@utility btn-primary {
+  @apply bg-cyan-500 text-slate-950 enabled:hover:bg-cyan-400;
+}
+
+@utility btn-ghost {
+  @apply border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10;
+}
+
+@utility field {
+  @apply w-full rounded-lg border border-white/10 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 outline-none transition placeholder:text-slate-500 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20;
+}
+
+/* Trame de fond du graphe */
+@utility bg-grid {
+  background-image: radial-gradient(circle, rgb(148 163 184 / 0.14) 1px, transparent 1px);
+  background-size: 24px 24px;
+}

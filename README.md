@@ -52,11 +52,29 @@ Toute la configuration se trouve dans `.env`. Une variable d'environnement déj�
 
 ## Application web (en cours de développement)
 
+Construire l'interface une première fois, puis après chaque mise à jour du frontend (Node.js 20.19+ ou 22.12+) :
+
 ```powershell
+cd frontend
+npm install
+npm run build
+cd ..
 argus serve
 ```
 
-L'API est disponible ; l'interface graphique n'est pas encore développée. La documentation interactive se trouve sur `http://127.0.0.1:8000/docs` : appeler `POST /api/login` d'abord. Les équipements se gèrent avec `/api/devices` et sont enregistrés en base, indépendamment de `ARGUS_DEVICES`.
+Ouvrir `http://127.0.0.1:8000` et se connecter avec `ARGUS_ADMIN_PASSWORD`.
+
+- **Équipements** : ajouter ou supprimer les adresses IP à surveiller. Elles sont enregistrées en base, indépendamment de `ARGUS_DEVICES`.
+- **Topologie** : graphe hiérarchique (cœur, distribution, accès), détails au clic, scan à la demande, exports Excel et JSON. L'écran est rafraîchi toutes les 3 secondes.
+- **Image PNG** : ne contient que les équipements qui répondent et les liaisons entre eux, avec leur disposition à l'écran. Les équipements en échec, en attente ou non gérés en sont exclus.
+
+La couche d'un équipement suit cet ordre de priorité : le choix fait dans la page **Équipements**, puis le nom (`CORE`, `DIST` ou `DST`, `ACC`), puis le nombre de liaisons. Ce dernier critère ne désigne jamais un cœur. La couche d'un voisin non géré ne peut pas être choisie.
+
+Un équipement qui n'a jamais répondu n'a pas de nom connu : il apparaît par son adresse IP, et les liens annoncés par ses voisins restent rattachés à un nœud « non géré ».
+
+L'historique est disponible via l'API (`GET /api/changes`), pas encore dans l'interface. Documentation de l'API : `/docs`.
+
+Pour développer le frontend, lancer `argus serve`, puis `npm run dev` dans `frontend/` et ouvrir l'adresse affichée par Vite.
 
 ## Utilisation
 
@@ -90,6 +108,7 @@ argus/
 ├── collector.py    # ping, SSH, analyse LLDP, parallélisme
 ├── exporters.py    # journal, JSON, Excel, graphe
 └── ssh_compat.py   # algorithmes SSH obsolètes
+frontend/           # interface React, TypeScript, Vite, Tailwind, Cytoscape.js
 tests/              # tests unitaires, sans équipement réseau
 ```
 
@@ -102,7 +121,7 @@ ruff format .
 python -m unittest discover -s tests -v
 ```
 
-La CI GitHub Actions (`.github/workflows/ci.yml`) exécute le lint, le contrôle du format et les tests avec Python 3.10 et 3.13.
+La CI GitHub Actions (`.github/workflows/ci.yml`) exécute le lint, le contrôle du format et les tests avec Python 3.10 et 3.13, et construit le frontend.
 
 ## Sécurité
 
@@ -116,8 +135,8 @@ La CI GitHub Actions (`.github/workflows/ci.yml`) exécute le lint, le contrôle
 - Cisco IOS uniquement.
 - Une sortie LLDP non reconnue par `ntc-templates` place l'équipement en échec.
 - Un voisin qui n'annonce pas de nom est identifié par son Chassis ID.
-- Le graphe ne dessine qu'une liaison par paire d'équipements.
-- La distinction distribution/accès repose seulement sur le nombre de connexions.
+- Commandes `generator` et `monitor` : leur graphe ne dessine qu'une liaison par paire d'équipements et distingue distribution et accès par le seul nombre de connexions.
+- Si le détail LLDP n'indique pas le port local, il est lu dans `show lldp neighbors` ; une correspondance ambiguë (noms identiques sur leurs 20 premiers caractères et même port distant) place l'équipement en échec.
 - Le champ `model` contient le début de la ligne de version logicielle, pas le modèle matériel.
 
 ## Auteur

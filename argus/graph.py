@@ -1,5 +1,34 @@
 """Transformation d'une topologie en graphe (nœuds et liens) pour l'interface."""
 
+import re
+from collections import Counter
+
+# Couches reconnues dans les noms, par exemple « SW-DST-01 » ou « CORE1 »
+_LAYER_WORDS = {
+    "core": {"CORE", "COR", "COEUR"},
+    "distribution": {"DIST", "DST", "DIS", "DISTRIB", "DISTRIBUTION"},
+    "access": {"ACC", "ACCESS", "ACCES"},
+}
+
+
+def layer_from_name(name):
+    """Retourne la couche indiquée par le nom, ou None."""
+    words = set(re.split(r"[^A-Z]+", name.upper()))
+    return next((layer for layer, known in _LAYER_WORDS.items() if words & known), None)
+
+
+def _assign_layers(nodes, edges, roles):
+    """Priorité : choix de l'administrateur, nom, puis nombre de liaisons (jamais « core »)."""
+    degrees = Counter()
+    for edge in edges:
+        degrees.update([edge["source"], edge["target"]])
+
+    for node in nodes:
+        guess = (
+            "distribution" if node["status"] != "unmanaged" and degrees[node["id"]] > 1 else None
+        )
+        node["layer"] = roles.get(node["ip"]) or layer_from_name(node["label"]) or guess or "access"
+
 
 def restrict(topology, ips):
     """Écarte de la topologie les équipements qui ne sont plus dans l'inventaire."""
@@ -76,4 +105,6 @@ def build_graph(inventory, topology):
                 },
             )
 
+    roles = {device["ip"]: device.get("role") for device in inventory}
+    _assign_layers(nodes.values(), edges.values(), roles)
     return {"nodes": list(nodes.values()), "edges": list(edges.values())}

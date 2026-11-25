@@ -9,7 +9,7 @@ import uvicorn
 from argus.app import bootstrap
 from argus.db import Database
 from argus.scanner import Scanner
-from argus.web import create_app
+from argus.web import FRONTEND_DIR, create_app
 
 logger = logging.getLogger("argus.cli")
 
@@ -23,6 +23,12 @@ def serve():
         logger.warning(
             "L'interface est exposée sur %s sans HTTPS : réservez cet usage à un lab isolé",
             settings.host,
+        )
+
+    if not (FRONTEND_DIR / "index.html").is_file():
+        logger.warning(
+            "Interface non construite, seule l'API est servie : "
+            "lancez « npm install » puis « npm run build » dans frontend/"
         )
 
     db = Database(settings.db_path)

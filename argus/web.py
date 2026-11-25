@@ -6,11 +6,14 @@ import json
 import secrets
 import time
 from contextlib import asynccontextmanager
+from typing import Literal
 
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request, Response
 from fastapi.responses import StreamingResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
+from argus.config import PROJECT_ROOT
 from argus.db import DuplicateDeviceError
 from argus.exporters import build_links, excel_bytes
 from argus.graph import build_graph, device_status, restrict
@@ -18,6 +21,7 @@ from argus.graph import build_graph, device_status, restrict
 SESSION_COOKIE = "argus_session"
 SESSION_LIFETIME = 12 * 3600
 _HEARTBEAT_EVERY = 15
+FRONTEND_DIR = PROJECT_ROOT / "frontend" / "dist"
 
 _MEDIA_TYPES = {
     "json": "application/json",
@@ -31,6 +35,10 @@ class Login(BaseModel):
 
 class NewDevice(BaseModel):
     ip: str = Field(max_length=64)
+
+
+class DeviceRole(BaseModel):
+    role: Literal["core", "distribution", "access"] | None
 
 
 class Sessions:
@@ -69,7 +77,7 @@ async def event_stream(scanner, is_active, poll_interval=1.0):
         await asyncio.sleep(poll_interval)
 
 
-def create_app(settings, db, scanner, run_scanner=True):
+def create_app(settings, db, scanner, run_scanner=True, frontend_dir=FRONTEND_DIR):
     sessions = Sessions()
 
     @asynccontextmanager
@@ -118,7 +126,12 @@ def create_app(settings, db, scanner, run_scanner=True):
     @api.get("/devices")
     def list_devices():
         inventory, topology, _ = inventory_topology()
-        return [{**d, "status": device_status(d["ip"], topology)} for d in inventory]
+        nodes = build_graph(inventory, topology)["nodes"]
+        layers = {node["ip"]: node["layer"] for node in nodes if node["ip"]}
+        return [
+            {**d, "status": device_status(d["ip"], topology), "layer": layers[d["ip"]]}
+            for d in inventory
+        ]
 
     @api.post("/devices", status_code=201)
     def add_device(new: NewDevice):
@@ -133,6 +146,12 @@ def create_app(settings, db, scanner, run_scanner=True):
         scanner.notify()
         scanner.request_scan()
         return {**device, "status": "pending"}
+
+    @api.patch("/devices/{device_id}", status_code=204)
+    def set_device_role(device_id: int, update: DeviceRole):
+        if not db.set_role(device_id, update.role):
+            raise HTTPException(404, "Équipement introuvable")
+        scanner.notify()
 
     @api.delete("/devices/{device_id}", status_code=204)
     def delete_device(device_id: int):
@@ -183,4 +202,7 @@ def create_app(settings, db, scanner, run_scanner=True):
         )
 
     app.include_router(api)
+    # Monté en dernier pour ne pas masquer l'API ni /docs
+    if (frontend_dir / "index.html").is_file():
+        app.mount("/", StaticFiles(directory=frontend_dir, html=True), name="frontend")
     return app

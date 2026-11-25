@@ -10,7 +10,8 @@ CREATE TABLE IF NOT EXISTS devices (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     ip TEXT NOT NULL UNIQUE,
     hostname TEXT,
-    created_at TEXT NOT NULL
+    created_at TEXT NOT NULL,
+    role TEXT
 );
 CREATE TABLE IF NOT EXISTS state (
     id INTEGER PRIMARY KEY CHECK (id = 1),
@@ -41,6 +42,10 @@ class Database:
         path.parent.mkdir(parents=True, exist_ok=True)
         with self._connect() as conn:
             conn.executescript(_SCHEMA)
+            # Bases créées avant l'ajout des couches
+            columns = {row["name"] for row in conn.execute("PRAGMA table_info(devices)")}
+            if "role" not in columns:
+                conn.execute("ALTER TABLE devices ADD COLUMN role TEXT")
 
     @contextmanager
     def _connect(self):
@@ -55,8 +60,16 @@ class Database:
 
     def list_devices(self):
         with self._connect() as conn:
-            rows = conn.execute("SELECT id, ip, hostname, created_at FROM devices ORDER BY id")
+            rows = conn.execute(
+                "SELECT id, ip, hostname, created_at, role FROM devices ORDER BY id"
+            )
             return [dict(row) for row in rows]
+
+    def set_role(self, device_id, role):
+        """role : couche choisie, ou None pour la détection automatique."""
+        with self._connect() as conn:
+            cursor = conn.execute("UPDATE devices SET role = ? WHERE id = ?", (role, device_id))
+            return cursor.rowcount > 0
 
     def add_device(self, ip):
         created_at = _now()
@@ -67,7 +80,13 @@ class Database:
                 )
         except sqlite3.IntegrityError as e:
             raise DuplicateDeviceError(ip) from e
-        return {"id": cursor.lastrowid, "ip": ip, "hostname": None, "created_at": created_at}
+        return {
+            "id": cursor.lastrowid,
+            "ip": ip,
+            "hostname": None,
+            "created_at": created_at,
+            "role": None,
+        }
 
     def delete_device(self, device_id):
         with self._connect() as conn:
