@@ -1,112 +1,111 @@
-# Système de Documentation Automatisée de Réseau
+# ARGUS — Documentation automatisée de réseau
 
-## 📌 Description
+ARGUS découvre la topologie d'un réseau (couches accès et distribution) en interrogeant les équipements Cisco IOS en SSH, à partir de leurs voisins LLDP, puis génère la documentation correspondante. Il peut surveiller le réseau et la regénérer à chaque changement.
 
-Ce projet vise à automatiser la documentation d'un réseau informatique, notamment la couche d'accès et de distribution. Il permet de détecter la topologie réseau en temps réel à l’aide des protocoles LLDP et SSH, puis de générer des fichiers de documentation structurés (JSON, Excel, Graphviz, etc.).
+> **Statut : prototype.** Destiné à un lab (testé sur GNS3), pas à la production.
 
-Le système est conçu pour être modulaire, sécurisé, évolutif et facilement déployable dans un environnement réel ou simulé.
+## Fonctionnalités
 
-## 🧱 Architecture du Système
+- Découverte des liaisons via LLDP, analysées avec `ntc-templates`.
+- Collecte en parallèle sur plusieurs équipements.
+- Export en JSON, Excel et graphe PNG (Graphviz).
+- Surveillance périodique : nouvel équipement, équipement disparu, liaison modifiée, équipement en échec ou rétabli.
 
-Le système est divisé en plusieurs modules (ou couches) :
+## Prérequis
 
-1. **Agents** : Équipements réseau (switches, routeurs) configurés avec LLDP et SSH.
-2. **Centre de Pilotage** : Serveur central (physique ou virtualisé) qui orchestre la collecte et le traitement des données.
-3. **Connexion** : Interface SSH entre le centre et les agents.
-4. **Interaction** : Commandes exécutées à distance via SSH.
-5. **Extraction** : Données LLDP brutes récupérées depuis les équipements.
-6. **T.A.S.** (Traitement, Analyse et Structuration) : Transformation des données brutes en structures exploitables.
-7. **Génération** : Production automatique de fichiers de documentation.
-8. **Sauvegarde** : Centralisation des fichiers dans un espace de stockage dédié.
+- Python 3.10 ou plus récent.
+- [Graphviz](https://graphviz.org/download/) installé, avec `dot` dans le `PATH` (nécessaire au PNG uniquement).
+- Équipements Cisco IOS avec SSH et LLDP activés, répondant au ping.
 
-## ⚙️ Fonctionnalités
-
-- 🔍 Détection automatique de la topologie via LLDP.
-- 📡 Connexion sécurisée aux équipements via SSH (authentification par clé).
-- 📂 Export de la topologie sous plusieurs formats (JSON, CSV, Excel, Graphviz).
-- 🔁 Surveillance continue de la topologie (script déclenché à intervalle régulier).
-- ⚠️ Détection de changements de connectivité.
-- 🧾 Journalisation des erreurs et logs détaillés.
-
-## 🧰 Technologies utilisées
-
-- **Python 3.x**
-- **Modules** : `paramiko`, `netmiko`, `subprocess`, `os`, `json`, `xlsxwriter`, `graphviz`, `datetime`, etc.
-- **SSH Key Auth** pour sécuriser l’accès aux équipements.
-- **LLDP** comme protocole de découverte de voisin.
-
-## 🏗️ Prérequis
-
-- Switches/routeurs configurés avec LLDP et SSH.
-- Python 3 installé sur le serveur.
-- Clés SSH générées et copiées sur les équipements.
-- Connexion réseau stable entre le centre et les agents.
-
-## 🚀 Lancer le système
-
-1. Cloner le dépôt :
-
-Installer les dépendances :
-
-Configurer les accès dans config.py :
-
-Adresse IP des équipements
-
-Nom d'utilisateur
-
-Chemin de la clé SSH
-
-Commandes personnalisées
-
-Lancer la surveillance :
-
-python monitor_topology.py
-
-Pour les switches de lab qui n'acceptent que des algorithmes SSH obsolètes,
-la compatibilité est activée par défaut. Pour la désactiver dans la session
-PowerShell :
+## Installation
 
 ```powershell
-$env:ALLOW_LEGACY_SSH = "false"
-python monitor_topology.py
+python -m venv venv
+.\venv\Scripts\Activate.ps1
+pip install -e .
+Copy-Item .env.example .env
 ```
 
-Cette option est réservée à un lab isolé. Pour revenir au comportement par
-défaut dans la session, supprimez la variable avec
-`Remove-Item Env:ALLOW_LEGACY_SSH`.
+Sous Linux : `source venv/bin/activate` et `cp .env.example .env`.
 
-La génération automatique s’exécute en cas de détection de changement :
+## Configuration
 
-python ARGUS_network_topology_generator.py
+Toute la configuration se trouve dans `.env`. Une variable d'environnement déjà définie dans le terminal prime sur ce fichier.
 
-📊 Résultats attendus
-Fichiers .json représentant la topologie.
+| Variable | Description | Défaut |
+|---|---|---|
+| `ARGUS_DEVICES` | Adresses des équipements, séparées par des virgules | obligatoire |
+| `ARGUS_USERNAME` | Utilisateur SSH | obligatoire |
+| `ARGUS_PASSWORD` | Mot de passe SSH | obligatoire |
+| `ARGUS_SECRET` | Mot de passe du mode *enable* | vide |
+| `ARGUS_TIMEOUT` | Délai de connexion et de lecture (s) | `20` |
+| `ARGUS_SESSION_TIMEOUT` | Délai de session Netmiko (s) | `20` |
+| `ARGUS_MONITOR_INTERVAL` | Pause entre deux vérifications (s) | `60` |
+| `ARGUS_MAX_WORKERS` | Équipements interrogés en parallèle | `10` |
+| `ARGUS_LOG_LEVEL` | `DEBUG`, `INFO`, `WARNING` ou `ERROR` | `INFO` |
+| `ARGUS_OUTPUT_DIR` | Dossier des exports | `topologies` |
+| `ARGUS_ALLOW_LEGACY_SSH` | Autorise les algorithmes SSH obsolètes | `false` |
 
-Tableaux Excel des connexions entre équipements.
+## Utilisation
 
-Graphes visuels générés automatiquement.
+Depuis la racine du projet :
 
-🔒 Sécurité
-Authentification par clé SSH uniquement.
+```powershell
+python -m argus.generator   # documentation, une seule fois
+python -m argus.monitor     # surveillance continue (Ctrl+C pour arrêter)
+```
 
-Pas de mot de passe transmis en clair.
+Les fichiers `topology_<horodatage>.{json,xlsx,png}` sont écrits dans le dossier des exports. Excel et PNG ne sont produits que si au moins une liaison est découverte.
 
-Journalisation des tentatives de connexion échouées.
+Le moniteur prend pour référence le dernier export JSON et n'écrit de nouveaux fichiers que lorsqu'un changement est détecté.
 
-📅 État du projet
-✅ Fonctionnel et testé sur des réseaux simulés (GNS3)
-🛠️ En cours de test en environnement de production
+Les journaux sont écrits sur la sortie d'erreur. En `DEBUG`, ARGUS journalise les réponses brutes des équipements : à ne pas partager sans relecture.
 
-💡 Perspectives futures
-Intégration SNMP pour équipements sans SSH
+## Structure
 
-Interface web de visualisation de la topologie
+```
+argus/
+├── generator.py    # commande : collecte puis export
+├── monitor.py      # commande : surveillance et détection des changements
+├── app.py          # initialisation commune et journalisation
+├── config.py       # chargement et validation du .env
+├── collector.py    # ping, SSH, analyse LLDP, parallélisme
+├── exporters.py    # journal, JSON, Excel, graphe
+└── ssh_compat.py   # algorithmes SSH obsolètes
+tests/              # tests unitaires, sans équipement réseau
+```
 
-Génération de rapports PDF
+## Développement
 
-👨‍💻 Auteur
+```powershell
+pip install -e ".[dev]"
+ruff check .
+ruff format .
+python -m unittest discover -s tests -v
+```
+
+La CI GitHub Actions (`.github/workflows/ci.yml`) exécute le lint, le contrôle du format et les tests avec Python 3.10 et 3.13.
+
+## Sécurité
+
+- L'authentification se fait par **mot de passe**, avec les mêmes identifiants pour tous les équipements. L'authentification par clé SSH n'est pas prise en charge.
+- `.env` contient des secrets en clair : il est ignoré par Git et doit le rester.
+- `ARGUS_ALLOW_LEGACY_SSH=true` active `diffie-hellman-group1-sha1`, `ssh-rsa`, `aes128-cbc` et `hmac-sha1`. À réserver à un lab isolé.
+- Les exports décrivent le réseau (adresses, liaisons) : à traiter comme des données sensibles.
+
+## Limites connues
+
+- Cisco IOS uniquement.
+- Une sortie LLDP non reconnue par `ntc-templates` place l'équipement en échec.
+- Un voisin qui n'annonce pas de nom est identifié par son Chassis ID.
+- Le graphe ne dessine qu'une liaison par paire d'équipements.
+- La distinction distribution/accès repose seulement sur le nombre de connexions.
+- Le champ `model` contient le début de la ligne de version logicielle, pas le modèle matériel.
+
+## Auteur
+
 Kanjak
-Étudiant en Sciences Informatiques, passionné de cybersécurité, réseaux, programmation et IA appliquée à la réalité augmentée.
 
-📄 Licence
-Ce projet est sous licence MIT.
+## Licence
+
+[MIT](LICENSE)

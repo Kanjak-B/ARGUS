@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "argus"
+version = "2.0.0"
+description = "Documentation et surveillance automatisées d'une topologie réseau (LLDP/SSH)"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Kanjak" }]
+requires-python = ">=3.10"
+dependencies = [
+    "graphviz>=0.20",
+    "netmiko>=4.0",
+    "ntc-templates>=9.4",
+    "openpyxl>=3.1",
+    # Version figée : ssh_compat modifie des attributs privés de Paramiko
+    "paramiko==4.0.0",
+    "python-dotenv>=1.0",
+    "tabulate>=0.9",
+]
+
+[project.optional-dependencies]
+dev = ["ruff>=0.6"]
+
+[tool.setuptools]
+packages = ["argus"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "T20"]
