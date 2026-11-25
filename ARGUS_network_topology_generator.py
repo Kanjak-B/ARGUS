@@ -8,6 +8,7 @@ K@nj@k coding mood
 
 # Importation des modules nécessaires pour le fonctionnement du script
 import subprocess  # Pour exécuter des commandes système (ping)
+import ssh_compat  # Initialise la compatibilité SSH avant Netmiko
 from netmiko import ConnectHandler, NetmikoAuthenticationException, NetmikoTimeoutException  # Pour la connexion SSH aux équipements réseau
 import platform  # Pour détecter le système d'exploitation (Windows/Linux)
 from tabulate import tabulate  # Pour afficher les tableaux de manière lisible dans le terminal

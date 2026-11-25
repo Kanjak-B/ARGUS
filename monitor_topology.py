@@ -11,6 +11,7 @@ import glob
 import sys
 import platform
 from datetime import datetime
+import ssh_compat
 from netmiko import ConnectHandler, NetmikoAuthenticationException, NetmikoTimeoutException
 from config import DEVICES, DEFAULT_CREDENTIALS, TIMEOUT, SESSION_TIMEOUT, DETECTION_COMMANDS
 
