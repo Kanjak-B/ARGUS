@@ -1,0 +1,5 @@
+netmiko>=4.0
+paramiko==4.0.0
+tabulate>=0.9
+openpyxl>=3.1
+graphviz>=0.20
