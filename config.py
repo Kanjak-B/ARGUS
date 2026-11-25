@@ -5,8 +5,8 @@
 # Liste des adresses IP des équipements réseau à interroger
 # L'administrateur n'a qu'à ajouter ou retirer des IP ici
 DEVICES = [
-    "10.20.30.100",
-    "10.20.30.101",
+    "10.20.30.250",
+    "10.20.30.10",
     # "10.103.0.10",
     # "10.103.0.11",
     # "10.103.0.12",
