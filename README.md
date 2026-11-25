@@ -62,6 +62,19 @@ Lancer la surveillance :
 
 python monitor_topology.py
 
+Pour les switches de lab qui n'acceptent que des algorithmes SSH obsolètes,
+la compatibilité est activée par défaut. Pour la désactiver dans la session
+PowerShell :
+
+```powershell
+$env:ALLOW_LEGACY_SSH = "false"
+python monitor_topology.py
+```
+
+Cette option est réservée à un lab isolé. Pour revenir au comportement par
+défaut dans la session, supprimez la variable avec
+`Remove-Item Env:ALLOW_LEGACY_SSH`.
+
 La génération automatique s’exécute en cas de détection de changement :
 
 python ARGUS_network_topology_generator.py
