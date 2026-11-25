@@ -1,0 +1,16 @@
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+
+# Virtual environments
+.venv/
+venv/
+
+# Local environment variables and logs
+.env
+*.log
+
+# Generated topology exports
+topologies/topology_*.json
+topologies/topology_*.xlsx
+topologies/topology_*.png
