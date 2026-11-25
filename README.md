@@ -104,7 +104,16 @@ La CI GitHub Actions (`.github/workflows/ci.yml`) exécute le lint, le contrôle
 
 ## Auteur
 
-Kanjak
+### Kanjak
+
+**Network & Software Engineer** · IT Professional
+
+`DevOps` `GCP` `AWS` `IaC` `Agentic AI Workflow`
+
+*On the road to cybersecurity* 🔐
+
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-0A66C2?style=for-the-badge&logoColor=white)](https://www.linkedin.com/in/mardochee-mukoj/)
+[![GitHub](https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/Kanjak-B)
 
 ## Licence
 
