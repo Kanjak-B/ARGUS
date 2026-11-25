@@ -16,6 +16,7 @@ VENDOR = "Cisco"
 PROTOCOL = "LLDP"
 MODEL_PATTERN = r"Cisco.*Software.*Version"
 NEIGHBORS_COMMAND = "show lldp neighbors detail"
+TABLE_COMMAND = "show lldp neighbors"
 
 logger = logging.getLogger(__name__)
 
@@ -48,8 +49,26 @@ def parse_hostname(output):
     return match.group(1) if match else "Unknown"
 
 
-def parse_neighbors(output):
-    """Analyse la sortie de 'show lldp neighbors detail' avec ntc-templates."""
+def _find_local_interface(rows, name, remote_interface):
+    """Retrouve un port local dans le tableau, où les noms sont coupés à 20 caractères."""
+    matches = [
+        row["local_interface"]
+        for row in rows
+        # Avec des capacités « R B », la colonne extraite peut valoir « B   Et3/2 »
+        if row["neighbor_interface"].split()[-1] == remote_interface.split()[-1]
+        and name.startswith(row["neighbor_name"])
+    ]
+    if len(matches) != 1:
+        raise CollectionError(f"port local introuvable ou ambigu pour le voisin {name}")
+    return matches[0]
+
+
+def parse_neighbors(output, read_table):
+    """Analyse la sortie de 'show lldp neighbors detail' avec ntc-templates.
+
+    Certaines versions d'IOS n'y indiquent pas le port local : read_table() fournit alors
+    la sortie de 'show lldp neighbors', où il figure.
+    """
     total = re.search(r"Total entries displayed:\s*(\d+)", output)
     if not total:
         # Sans ce total, une sortie tronquée ou une erreur passerait pour « aucun voisin »
@@ -61,15 +80,25 @@ def parse_neighbors(output):
             f"{len(entries)} voisin(s) analysé(s) sur {total.group(1)} annoncé(s)"
         )
 
-    return [
-        {
-            # Sans System Name annoncé, le Chassis ID identifie le voisin
-            "name": short_name(e["neighbor_name"]) if e["neighbor_name"] else e["chassis_id"],
-            "local_interface": e["local_interface"],
-            "remote_interface": e["neighbor_port_id"],
-        }
-        for e in entries
-    ]
+    rows = None
+    if any(not e["local_interface"] for e in entries):
+        rows = parse_output(platform=DEVICE_TYPE, command=TABLE_COMMAND, data=read_table())
+
+    neighbors = []
+    for e in entries:
+        # Sans System Name annoncé, le Chassis ID identifie le voisin
+        full_name = e["neighbor_name"] or e["chassis_id"]
+        local_interface = e["local_interface"] or _find_local_interface(
+            rows, full_name, e["neighbor_port_id"]
+        )
+        neighbors.append(
+            {
+                "name": short_name(full_name) if e["neighbor_name"] else full_name,
+                "local_interface": local_interface,
+                "remote_interface": e["neighbor_port_id"],
+            }
+        )
+    return neighbors
 
 
 def collect_device(ip, settings):
@@ -98,7 +127,7 @@ def collect_device(ip, settings):
             raise CollectionError("LLDP n'est pas activé")
 
         hostname = parse_hostname(run("show running-config | include hostname"))
-        neighbors = parse_neighbors(run(NEIGHBORS_COMMAND))
+        neighbors = parse_neighbors(run(NEIGHBORS_COMMAND), lambda: run(TABLE_COMMAND))
 
     return short_name(hostname), {
         "ip": ip,

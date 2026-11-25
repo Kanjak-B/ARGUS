@@ -47,6 +47,24 @@ def lldp_output(*entries):
 LLDP_OUTPUT = lldp_output(lldp_entry("Gi0/1", "SW-ACC-01.lab.local"))
 
 
+def no_table():
+    raise AssertionError("le tableau ne doit pas être demandé")
+
+
+def lldp_table(*rows):
+    header = "Device ID           Local Intf     Hold-time  Capability      Port ID\n"
+    lines = [
+        f"{name[:20]:<20}{local:<15}120        {capabilities:<16}{remote}\n"
+        for name, local, capabilities, remote in rows
+    ]
+    return header + "".join(lines) + f"\nTotal entries displayed: {len(rows)}\n"
+
+
+def without_local_interface(output):
+    """Format de certaines versions d'IOS : pas de ligne « Local Intf »."""
+    return "\n".join(x for x in output.split("\n") if not x.startswith("Local Intf:"))
+
+
 def topology(neighbors, failed=()):
     return {
         "timestamp": "20260101_000000",
@@ -58,7 +76,7 @@ def topology(neighbors, failed=()):
 class ParserTests(unittest.TestCase):
     def test_neighbors(self):
         self.assertEqual(
-            parse_neighbors(LLDP_OUTPUT),
+            parse_neighbors(LLDP_OUTPUT, no_table),
             [{"name": "SW-ACC-01", "local_interface": "Gi0/1", "remote_interface": "Gi0/0"}],
         )
 
@@ -68,12 +86,12 @@ class ParserTests(unittest.TestCase):
             lldp_entry("Gi0/2", None),
         )
         self.assertEqual(
-            [n["name"] for n in parse_neighbors(output)],
+            [n["name"] for n in parse_neighbors(output, no_table)],
             ["SW-ACCESS-WITH-A-VERY-LONG-NAME", "5254.0012.3456"],
         )
 
     def test_no_neighbors(self):
-        self.assertEqual(parse_neighbors("\nTotal entries displayed: 0\n"), [])
+        self.assertEqual(parse_neighbors("\nTotal entries displayed: 0\n", no_table), [])
 
     def test_unusable_output_is_an_error(self):
         cases = (
@@ -83,7 +101,50 @@ class ParserTests(unittest.TestCase):
         )
         for output in cases:
             with self.subTest(output=output[:30]), self.assertRaises(CollectionError):
-                parse_neighbors(output)
+                parse_neighbors(output, no_table)
+
+    def test_local_interface_comes_from_table_when_missing_from_detail(self):
+        long_name = "SW-ACCESS-WITH-A-VERY-LONG-NAME.lab.local"
+        detail = without_local_interface(
+            lldp_output(
+                lldp_entry("unused", "SW-ACC-02.lab.local").replace("Gi0/0", "Et3/2"),
+                lldp_entry("unused", long_name).replace("Gi0/0", "Et3/3"),
+            )
+        )
+        table = lldp_table(
+            (long_name, "Et0/0", "B", "Et3/3"),
+            ("SW-ACC-02.lab.local", "Et0/1", "R B", "Et3/2"),
+        )
+        self.assertEqual(
+            [
+                (n["name"], n["local_interface"], n["remote_interface"])
+                for n in parse_neighbors(detail, lambda: table)
+            ],
+            [
+                ("SW-ACC-02", "Et0/1", "Et3/2"),
+                ("SW-ACCESS-WITH-A-VERY-LONG-NAME", "Et0/0", "Et3/3"),
+            ],
+        )
+
+    def test_parallel_links_are_told_apart_by_remote_port(self):
+        detail = without_local_interface(
+            lldp_output(
+                lldp_entry("unused", "SW2").replace("Gi0/0", "Et0/2"),
+                lldp_entry("unused", "SW2").replace("Gi0/0", "Et0/3"),
+            )
+        )
+        table = lldp_table(("SW2", "Et1/3", "B", "Et0/3"), ("SW2", "Et1/2", "B", "Et0/2"))
+        self.assertEqual(
+            [n["local_interface"] for n in parse_neighbors(detail, lambda: table)],
+            ["Et1/2", "Et1/3"],
+        )
+
+    def test_missing_or_ambiguous_local_interface_is_an_error(self):
+        detail = without_local_interface(LLDP_OUTPUT)
+        row = ("SW-ACC-01.lab.local", "Et0/0", "B", "Gi0/0")
+        for table in (lldp_table(), lldp_table(row, (row[0], "Et0/1", "B", "Gi0/0"))):
+            with self.subTest(table=table), self.assertRaises(CollectionError):
+                parse_neighbors(detail, lambda table=table: table)
 
     def test_hostname(self):
         self.assertEqual(parse_hostname("hostname SW-DIST-01\n"), "SW-DIST-01")
@@ -128,7 +189,7 @@ class CollectionTests(unittest.TestCase):
 
 class ChangeDetectionTests(unittest.TestCase):
     def setUp(self):
-        self.reference = topology(parse_neighbors(LLDP_OUTPUT))
+        self.reference = topology(parse_neighbors(LLDP_OUTPUT, no_table))
         self.down = {**self.reference, "devices": {}, "failed_devices": ["192.0.2.10"]}
 
     def types(self, previous, current):
@@ -172,7 +233,7 @@ class ExportTests(unittest.TestCase):
 
     def test_links(self):
         self.assertEqual(
-            build_links(topology(parse_neighbors(LLDP_OUTPUT))),
+            build_links(topology(parse_neighbors(LLDP_OUTPUT, no_table))),
             [["SW-DIST-01", "192.0.2.10", "SW-ACC-01", "Gi0/1", "Gi0/0", "LLDP"]],
         )
 
