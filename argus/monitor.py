@@ -6,7 +6,8 @@ Usage : python -m argus.monitor
 import logging
 import time
 
-from argus.app import bootstrap
+from argus.app import bootstrap, require_devices
+from argus.changes import detect_changes
 from argus.collector import collect_topology
 from argus.exporters import export_topology, load_latest_json
 
@@ -14,49 +15,23 @@ from argus.exporters import export_topology, load_latest_json
 logger = logging.getLogger("argus.monitor")
 
 
-def _neighbor_set(device):
-    return {(n["name"], n["local_interface"], n["remote_interface"]) for n in device["neighbors"]}
-
-
-def detect_changes(previous, current):
-    """Retourne la description des changements entre deux topologies."""
-    if previous is None:
-        return ["Pas de topologie précédente"]
-
-    changes = []
-    old, new = previous["devices"], current["devices"]
-
-    changes += [f"Nouvel équipement : {name}" for name in sorted(new.keys() - old.keys())]
-    changes += [f"Équipement disparu : {name}" for name in sorted(old.keys() - new.keys())]
-    changes += [
-        f"Connexions modifiées sur {name}"
-        for name in sorted(old.keys() & new.keys())
-        if _neighbor_set(old[name]) != _neighbor_set(new[name])
-    ]
-
-    if set(previous.get("failed_devices", [])) != set(current["failed_devices"]):
-        failed = ", ".join(current["failed_devices"]) or "aucun"
-        changes.append(f"Équipements en échec : {failed}")
-
-    return changes
-
-
 def run_cycle(previous, settings):
     """Exécute une vérification et retourne la nouvelle topologie de référence."""
-    current = collect_topology(settings)
+    current = collect_topology(settings, settings.devices)
     changes = detect_changes(previous, current)
-    if not changes:
+    if previous is not None and not changes:
         logger.info("Aucun changement détecté")
         return previous
 
     for change in changes:
-        logger.warning("%s", change)
+        logger.warning("%s", change["message"])
     export_topology(current, settings.output_dir)
     return current
 
 
 def main():
     settings = bootstrap()
+    require_devices(settings)
     previous = load_latest_json(settings.output_dir)
     logger.info("Démarrage de la surveillance de la topologie")
 

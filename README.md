@@ -34,7 +34,11 @@ Toute la configuration se trouve dans `.env`. Une variable d'environnement déj�
 
 | Variable | Description | Défaut |
 |---|---|---|
-| `ARGUS_DEVICES` | Adresses des équipements, séparées par des virgules | obligatoire |
+| `ARGUS_ADMIN_PASSWORD` | Mot de passe administrateur de l'application web | obligatoire pour `argus serve` |
+| `ARGUS_HOST` | Adresse d'écoute de l'application web | `127.0.0.1` |
+| `ARGUS_PORT` | Port de l'application web | `8000` |
+| `ARGUS_DB_PATH` | Base SQLite de l'application web | `data/argus.db` |
+| `ARGUS_DEVICES` | Adresses des équipements, séparées par des virgules (`generator` et `monitor` uniquement) | obligatoire pour ces commandes |
 | `ARGUS_USERNAME` | Utilisateur SSH | obligatoire |
 | `ARGUS_PASSWORD` | Mot de passe SSH | obligatoire |
 | `ARGUS_SECRET` | Mot de passe du mode *enable* | vide |
@@ -45,6 +49,14 @@ Toute la configuration se trouve dans `.env`. Une variable d'environnement déj�
 | `ARGUS_LOG_LEVEL` | `DEBUG`, `INFO`, `WARNING` ou `ERROR` | `INFO` |
 | `ARGUS_OUTPUT_DIR` | Dossier des exports | `topologies` |
 | `ARGUS_ALLOW_LEGACY_SSH` | Autorise les algorithmes SSH obsolètes | `false` |
+
+## Application web (en cours de développement)
+
+```powershell
+argus serve
+```
+
+L'API est disponible ; l'interface graphique n'est pas encore développée. La documentation interactive se trouve sur `http://127.0.0.1:8000/docs` : appeler `POST /api/login` d'abord. Les équipements se gèrent avec `/api/devices` et sont enregistrés en base, indépendamment de `ARGUS_DEVICES`.
 
 ## Utilisation
 
@@ -68,6 +80,12 @@ argus/
 ├── generator.py    # commande : collecte puis export
 ├── monitor.py      # commande : surveillance et détection des changements
 ├── app.py          # initialisation commune et journalisation
+├── cli.py          # commande argus serve
+├── web.py          # API FastAPI, sessions, flux temps réel
+├── scanner.py      # surveillance en tâche de fond de l'application web
+├── db.py           # SQLite : équipements, dernier état, historique
+├── graph.py        # nœuds et liens pour l'interface
+├── changes.py      # détection des changements
 ├── config.py       # chargement et validation du .env
 ├── collector.py    # ping, SSH, analyse LLDP, parallélisme
 ├── exporters.py    # journal, JSON, Excel, graphe

@@ -1,5 +1,6 @@
 """Restitution d'une topologie : journal, JSON, Excel et graphe PNG."""
 
+import io
 import json
 import logging
 from collections import Counter
@@ -50,7 +51,7 @@ def _save_json(topology, path):
     path.write_text(json.dumps(topology, indent=4, ensure_ascii=False), encoding="utf-8")
 
 
-def _save_excel(links, path):
+def excel_bytes(links):
     wb = Workbook()
     ws = wb.active
     ws.title = "Topologie"
@@ -61,7 +62,9 @@ def _save_excel(links, path):
         width = max(len(str(cell.value)) for cell in column) + 2
         ws.column_dimensions[column[0].column_letter].width = width
 
-    wb.save(path)
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    return buffer.getvalue()
 
 
 def build_graph(links):
@@ -141,7 +144,7 @@ def export_topology(topology, output_dir):
 
     if links:
         log_summary(links)
-        _save_excel(links, base.with_suffix(".xlsx"))
+        base.with_suffix(".xlsx").write_bytes(excel_bytes(links))
         logger.info("Export Excel : %s.xlsx", base)
         if _save_png(links, base.with_suffix(".png")):
             logger.info("Export PNG : %s.png", base)

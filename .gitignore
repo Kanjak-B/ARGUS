@@ -18,6 +18,9 @@ venv/
 # Generated topology exports
 topologies/
 
+# Application database
+data/
+
 # Packaging
 *.egg-info/
 build/

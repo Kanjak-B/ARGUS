@@ -4,6 +4,7 @@ import logging
 import platform
 import re
 import subprocess
+from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 
@@ -126,16 +127,21 @@ def _probe(ip, settings):
     return hostname, info
 
 
-def collect_topology(settings):
-    """Interroge en parallèle tous les équipements configurés."""
+def collect_topology(settings, ips):
+    """Interroge en parallèle les équipements demandés."""
     with ThreadPoolExecutor(max_workers=settings.max_workers) as pool:
-        # map conserve l'ordre de la configuration
-        results = list(pool.map(lambda ip: _probe(ip, settings), settings.devices))
+        # map conserve l'ordre des adresses
+        results = list(pool.map(lambda ip: _probe(ip, settings), ips))
+
+    names = Counter(result[0] for result in results if result)
+    devices = {}
+    for result in filter(None, results):
+        name, info = result
+        # Des homonymes ne doivent pas s'écraser dans le dictionnaire
+        devices[f"{name} ({info['ip']})" if names[name] > 1 else name] = info
 
     return {
         "timestamp": datetime.now().strftime("%Y%m%d_%H%M%S"),
-        "devices": dict(result for result in results if result),
-        "failed_devices": [
-            ip for ip, result in zip(settings.devices, results, strict=True) if not result
-        ],
+        "devices": devices,
+        "failed_devices": [ip for ip, result in zip(ips, results, strict=True) if not result],
     }

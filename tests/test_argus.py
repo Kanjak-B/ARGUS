@@ -5,10 +5,10 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
+from argus.changes import detect_changes
 from argus.collector import CollectionError, collect_topology, parse_hostname, parse_neighbors
 from argus.config import ConfigError, load_settings
 from argus.exporters import build_links, export_topology, load_latest_json
-from argus.monitor import detect_changes
 
 
 def lldp_entry(local_interface, system_name):
@@ -93,7 +93,7 @@ class ParserTests(unittest.TestCase):
 class CollectionTests(unittest.TestCase):
     def test_parallel_collection_keeps_order_and_isolates_failures(self):
         devices = ("192.0.2.1", "192.0.2.2", "192.0.2.3")
-        settings = mock.Mock(devices=devices, max_workers=3)
+        settings = mock.Mock(max_workers=3)
         # La barrière n'est franchie que si les trois collectes sont simultanées
         barrier = threading.Barrier(len(devices), timeout=5)
 
@@ -108,32 +108,58 @@ class CollectionTests(unittest.TestCase):
             mock.patch("argus.collector.collect_device", side_effect=fake_collect),
             self.assertLogs("argus.collector", level="ERROR"),
         ):
-            result = collect_topology(settings)
+            result = collect_topology(settings, devices)
 
         self.assertEqual(list(result["devices"]), ["SW-1", "SW-3"])
         self.assertEqual(result["failed_devices"], ["192.0.2.2"])
+
+    def test_duplicate_hostnames_are_both_kept(self):
+        with (
+            mock.patch("argus.collector.is_reachable", return_value=True),
+            mock.patch(
+                "argus.collector.collect_device",
+                side_effect=lambda ip, _: ("Switch", {"ip": ip, "neighbors": []}),
+            ),
+        ):
+            result = collect_topology(mock.Mock(max_workers=2), ["192.0.2.1", "192.0.2.2"])
+
+        self.assertEqual(list(result["devices"]), ["Switch (192.0.2.1)", "Switch (192.0.2.2)"])
 
 
 class ChangeDetectionTests(unittest.TestCase):
     def setUp(self):
         self.reference = topology(parse_neighbors(LLDP_OUTPUT))
+        self.down = {**self.reference, "devices": {}, "failed_devices": ["192.0.2.10"]}
+
+    def types(self, previous, current):
+        return [change["type"] for change in detect_changes(previous, current)]
 
     def test_no_change(self):
         self.assertEqual(detect_changes(self.reference, self.reference), [])
 
-    def test_first_run(self):
-        self.assertTrue(detect_changes(None, self.reference))
+    def test_first_run_is_only_a_reference(self):
+        self.assertEqual(detect_changes(None, self.reference), [])
 
-    def test_lost_link(self):
-        self.assertTrue(detect_changes(self.reference, topology([])))
+    def test_lost_and_added_link(self):
+        (lost,) = detect_changes(self.reference, topology([]))
+        self.assertEqual(lost["message"], "Lien perdu : SW-DIST-01 Gi0/1 → SW-ACC-01 Gi0/0")
+        self.assertEqual(lost["details"]["local_interface"], "Gi0/1")
+        self.assertEqual(self.types(topology([]), self.reference), ["link_added"])
 
-    def test_removed_device(self):
-        current = {**self.reference, "devices": {}}
-        self.assertTrue(detect_changes(self.reference, current))
+    def test_failure_and_recovery_are_single_events(self):
+        self.assertEqual(self.types(self.reference, self.down), ["device_failed"])
+        self.assertEqual(self.types(self.down, self.down), [])
+        self.assertEqual(self.types(self.down, self.reference), ["device_recovered"])
 
-    def test_failed_devices(self):
-        current = topology(parse_neighbors(LLDP_OUTPUT), failed=["192.0.2.11"])
-        self.assertTrue(detect_changes(self.reference, current))
+    def test_inventory_changes(self):
+        empty = {"devices": {}, "failed_devices": []}
+        self.assertEqual(self.types(self.reference, empty), ["device_removed"])
+        self.assertEqual(self.types(empty, self.reference), ["device_added"])
+        self.assertEqual(self.types(empty, self.down), ["device_added", "device_failed"])
+
+    def test_rename(self):
+        renamed = {**self.reference, "devices": {"SW-NEW": self.reference["devices"]["SW-DIST-01"]}}
+        self.assertEqual(self.types(self.reference, renamed), ["device_renamed"])
 
 
 class ExportTests(unittest.TestCase):

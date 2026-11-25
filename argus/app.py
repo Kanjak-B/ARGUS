@@ -16,6 +16,12 @@ def setup_logging(level):
     logging.getLogger("argus").setLevel(level)
 
 
+def require_devices(settings):
+    """Les commandes en ligne lisent leurs équipements dans ARGUS_DEVICES."""
+    if not settings.devices:
+        sys.exit("Erreur de configuration : la variable ARGUS_DEVICES est obligatoire")
+
+
 def bootstrap():
     """Prépare l'exécution d'une commande et retourne la configuration."""
     try:

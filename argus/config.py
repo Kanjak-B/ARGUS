@@ -26,6 +26,10 @@ class Settings:
     allow_legacy_ssh: bool
     max_workers: int
     log_level: str
+    admin_password: str = field(repr=False)
+    host: str
+    port: int
+    db_path: Path
 
 
 def _required(name):
@@ -64,12 +68,11 @@ def load_settings(env_file=PROJECT_ROOT / ".env"):
     """Les variables d'environnement déjà définies priment sur le fichier .env."""
     load_dotenv(env_file)
 
-    devices = tuple(ip.strip() for ip in _required("ARGUS_DEVICES").split(",") if ip.strip())
-    if not devices:
-        raise ConfigError("La variable ARGUS_DEVICES ne contient aucun équipement")
+    devices = tuple(ip.strip() for ip in os.getenv("ARGUS_DEVICES", "").split(",") if ip.strip())
 
     # Un chemin relatif est résolu depuis la racine du projet
     output_dir = PROJECT_ROOT / (os.getenv("ARGUS_OUTPUT_DIR", "").strip() or "topologies")
+    db_path = PROJECT_ROOT / (os.getenv("ARGUS_DB_PATH", "").strip() or "data/argus.db")
 
     return Settings(
         devices=devices,
@@ -83,4 +86,8 @@ def load_settings(env_file=PROJECT_ROOT / ".env"):
         allow_legacy_ssh=_boolean("ARGUS_ALLOW_LEGACY_SSH", False),
         max_workers=_positive_int("ARGUS_MAX_WORKERS", 10),
         log_level=_log_level("ARGUS_LOG_LEVEL", "INFO"),
+        admin_password=os.getenv("ARGUS_ADMIN_PASSWORD", ""),
+        host=os.getenv("ARGUS_HOST", "").strip() or "127.0.0.1",
+        port=_positive_int("ARGUS_PORT", 8000),
+        db_path=db_path,
     )
