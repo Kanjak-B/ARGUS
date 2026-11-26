@@ -29,17 +29,17 @@ function ConfirmDelete({
       className="panel m-auto w-[min(26rem,90vw)] bg-slate-900 p-6 text-slate-200 backdrop:bg-black/60"
       onCancel={onCancel}
     >
-      <h2 className="text-lg font-semibold text-white">Supprimer l'équipement ?</h2>
+      <h2 className="text-lg font-semibold text-white">Delete this device?</h2>
       <p className="mt-2 text-sm text-slate-400">
-        <strong className="text-slate-200">{device.hostname ?? device.ip}</strong> ({device.ip}) ne
-        sera plus surveillé.
+        <strong className="text-slate-200">{device.hostname ?? device.ip}</strong> ({device.ip}) will no
+        longer be monitored.
       </p>
       <div className="mt-6 flex justify-end gap-2">
         <button type="button" className="btn btn-ghost" onClick={onCancel}>
-          Annuler
+          Cancel
         </button>
         <button type="button" className="btn bg-red-500 text-white hover:bg-red-400" onClick={onConfirm}>
-          Supprimer
+          Delete
         </button>
       </div>
     </dialog>
@@ -82,21 +82,21 @@ export function DevicesPage({ devices, refresh }: Props) {
   return (
     <div className="mx-auto max-w-4xl space-y-5">
       <header>
-        <h1 className="text-2xl font-semibold text-white">Équipements</h1>
+        <h1 className="text-2xl font-semibold text-white">Devices</h1>
         <p className="text-sm text-slate-400">
-          Équipements Cisco IOS interrogés par ARGUS. Les identifiants SSH viennent du fichier .env.
+          Cisco IOS devices polled by ARGUS. SSH credentials come from the .env file.
         </p>
       </header>
 
       <form onSubmit={add} className="panel p-4">
         <label htmlFor="ip" className="mb-2 block text-sm font-medium text-slate-300">
-          Ajouter un équipement
+          Add a device
         </label>
         <div className="flex flex-col gap-2 sm:flex-row">
           <input
             id="ip"
             className="field font-mono"
-            placeholder="Adresse IP, par exemple 10.0.0.1"
+            placeholder="IP address, e.g. 10.0.0.1"
             value={ip}
             onChange={(e) => setIp(e.target.value)}
             maxLength={64}
@@ -106,7 +106,7 @@ export function DevicesPage({ devices, refresh }: Props) {
           />
           <button type="submit" className="btn btn-primary shrink-0" disabled={busy || !ip.trim()}>
             <PlusIcon />
-            Ajouter
+            Add
           </button>
         </div>
         {error && (
@@ -120,16 +120,16 @@ export function DevicesPage({ devices, refresh }: Props) {
         {devices.length === 0 ? (
           <div className="flex flex-col items-center gap-2 p-10 text-center">
             <ServerIcon className="size-10 text-slate-600" />
-            <p className="text-sm text-slate-400">Aucun équipement enregistré.</p>
+            <p className="text-sm text-slate-400">No devices registered.</p>
           </div>
         ) : (
           <table className="w-full text-left text-sm">
             <thead className="border-b border-white/10 text-xs tracking-wider text-slate-500 uppercase">
               <tr>
-                <th className="px-5 py-3 font-medium">Nom</th>
-                <th className="px-5 py-3 font-medium">Adresse IP</th>
-                <th className="px-5 py-3 font-medium">Couche</th>
-                <th className="px-5 py-3 font-medium">Statut</th>
+                <th className="px-5 py-3 font-medium">Name</th>
+                <th className="px-5 py-3 font-medium">IP address</th>
+                <th className="px-5 py-3 font-medium">Layer</th>
+                <th className="px-5 py-3 font-medium">Status</th>
                 <th className="px-5 py-3">
                   <span className="sr-only">Actions</span>
                 </th>
@@ -139,13 +139,13 @@ export function DevicesPage({ devices, refresh }: Props) {
               {devices.map((device) => (
                 <tr key={device.id} className="transition hover:bg-white/5">
                   <td className="px-5 py-3 font-medium text-white">
-                    {device.hostname ?? <span className="text-slate-500">À découvrir</span>}
+                    {device.hostname ?? <span className="text-slate-500">Not discovered yet</span>}
                   </td>
                   <td className="px-5 py-3 font-mono text-slate-300">{device.ip}</td>
                   <td className="px-5 py-3">
                     <select
                       className="field w-auto min-w-44 py-1.5"
-                      aria-label={`Couche de ${device.hostname ?? device.ip}`}
+                      aria-label={`Layer of ${device.hostname ?? device.ip}`}
                       value={device.role ?? ''}
                       disabled={busy}
                       onChange={(e) => {
@@ -171,8 +171,8 @@ export function DevicesPage({ devices, refresh }: Props) {
                     <button
                       type="button"
                       className="btn btn-ghost p-2 hover:text-red-300"
-                      aria-label={`Supprimer ${device.ip}`}
-                      title="Supprimer"
+                      aria-label={`Delete ${device.ip}`}
+                      title="Delete"
                       disabled={busy}
                       onClick={() => setToDelete(device)}
                     >

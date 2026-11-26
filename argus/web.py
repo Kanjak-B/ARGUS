@@ -23,7 +23,7 @@ SESSION_LIFETIME = 12 * 3600
 _HEARTBEAT_EVERY = 15
 FRONTEND_DIR = PROJECT_ROOT / "frontend" / "dist"
 
-_VIEW_SUFFIXES = {"all": "complete", "online": "en_ligne"}
+_VIEW_SUFFIXES = {"all": "full", "online": "online"}
 _MEDIA_TYPES = {
     "json": "application/json",
     "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -91,7 +91,7 @@ def create_app(settings, db, scanner, run_scanner=True, frontend_dir=FRONTEND_DI
 
     def require_session(request: Request):
         if not sessions.is_valid(request.cookies.get(SESSION_COOKIE)):
-            raise HTTPException(401, "Authentification requise")
+            raise HTTPException(401, "Authentication required")
 
     app = FastAPI(title="ARGUS", lifespan=lifespan)
     api = APIRouter(prefix="/api", dependencies=[Depends(require_session)])
@@ -110,7 +110,7 @@ def create_app(settings, db, scanner, run_scanner=True, frontend_dir=FRONTEND_DI
             credentials.password.encode(), settings.admin_password.encode()
         ):
             time.sleep(1)  # freine les essais répétés
-            raise HTTPException(401, "Mot de passe incorrect")
+            raise HTTPException(401, "Wrong password")
         response.set_cookie(
             SESSION_COOKIE,
             sessions.create(),
@@ -139,11 +139,11 @@ def create_app(settings, db, scanner, run_scanner=True, frontend_dir=FRONTEND_DI
         try:
             ip = str(ipaddress.ip_address(new.ip.strip()))
         except ValueError:
-            raise HTTPException(422, "Adresse IP invalide") from None
+            raise HTTPException(422, "Invalid IP address") from None
         try:
             device = db.add_device(ip)
         except DuplicateDeviceError:
-            raise HTTPException(409, "Cet équipement est déjà enregistré") from None
+            raise HTTPException(409, "This device is already registered") from None
         scanner.notify()
         scanner.request_scan()
         return {**device, "status": "pending"}
@@ -151,13 +151,13 @@ def create_app(settings, db, scanner, run_scanner=True, frontend_dir=FRONTEND_DI
     @api.patch("/devices/{device_id}", status_code=204)
     def set_device_role(device_id: int, update: DeviceRole):
         if not db.set_role(device_id, update.role):
-            raise HTTPException(404, "Équipement introuvable")
+            raise HTTPException(404, "Device not found")
         scanner.notify()
 
     @api.delete("/devices/{device_id}", status_code=204)
     def delete_device(device_id: int):
         if not db.delete_device(device_id):
-            raise HTTPException(404, "Équipement introuvable")
+            raise HTTPException(404, "Device not found")
         scanner.notify()
         scanner.request_scan()
 
@@ -186,10 +186,10 @@ def create_app(settings, db, scanner, run_scanner=True, frontend_dir=FRONTEND_DI
     @api.get("/export/{file_format}")
     def export(file_format: str, view: Literal["all", "online"] = "all"):
         if file_format not in _MEDIA_TYPES:
-            raise HTTPException(404, "Format inconnu")
+            raise HTTPException(404, "Unknown format")
         inventory, topology, scanned_at = inventory_topology()
         if topology is None:
-            raise HTTPException(404, "Aucune topologie disponible")
+            raise HTTPException(404, "No topology available")
 
         graph = build_graph(inventory, topology)
         if view == "online":

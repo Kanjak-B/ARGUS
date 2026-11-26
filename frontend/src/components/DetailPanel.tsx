@@ -31,7 +31,7 @@ function Panel({
             {title}
           </h2>
         </div>
-        <button type="button" className="btn btn-ghost p-1.5" aria-label="Fermer" onClick={onClose}>
+        <button type="button" className="btn btn-ghost p-1.5" aria-label="Close" onClick={onClose}>
           <CloseIcon />
         </button>
       </header>
@@ -57,7 +57,7 @@ export function DetailPanel({ topology, selection, onSelect }: Props) {
     const edge = topology.edges.find((e) => e.id === selection.id)
     if (!edge) return null
     return (
-      <Panel title="Liaison" subtitle="Lien LLDP" onClose={close}>
+      <Panel title="Link" subtitle="LLDP link" onClose={close}>
         <dl className="space-y-3">
           <Field label={labelOf(edge.source)}>
             <code className="text-cyan-300">{edge.source_interface}</code>
@@ -89,21 +89,21 @@ export function DetailPanel({ topology, selection, onSelect }: Props) {
     .sort((a, b) => a.local.localeCompare(b.local, undefined, { numeric: true }))
 
   return (
-    <Panel title={node.label} subtitle="Équipement" onClose={close}>
+    <Panel title={node.label} subtitle="Device" onClose={close}>
       <StatusBadge status={node.status} />
       <dl className="space-y-3">
-        <Field label="Adresse IP">{node.ip ?? 'Inconnue'}</Field>
-        <Field label="Couche">{LAYERS.find((layer) => layer.id === node.layer)?.label}</Field>
-        {node.model && <Field label="Logiciel">{node.model}</Field>}
+        <Field label="IP address">{node.ip ?? 'Unknown'}</Field>
+        <Field label="Layer">{LAYERS.find((layer) => layer.id === node.layer)?.label}</Field>
+        {node.model && <Field label="Software">{node.model}</Field>}
       </dl>
       {node.status === 'unmanaged' && (
         <p className="rounded-lg bg-white/5 p-3 text-xs text-slate-400">
-          Ce voisin est annoncé par LLDP mais ne fait pas partie des équipements surveillés.
+          This neighbor is advertised through LLDP but is not a monitored device.
         </p>
       )}
       <section>
         <h3 className="mb-2 text-xs tracking-wider text-slate-500 uppercase">
-          Liaisons ({links.length})
+          Links ({links.length})
         </h3>
         <ul className="space-y-2">
           {links.map((link) => (
@@ -121,7 +121,7 @@ export function DetailPanel({ topology, selection, onSelect }: Props) {
             </li>
           ))}
         </ul>
-        {links.length === 0 && <p className="text-xs text-slate-500">Aucune liaison connue.</p>}
+        {links.length === 0 && <p className="text-xs text-slate-500">No known links.</p>}
       </section>
     </Panel>
   )

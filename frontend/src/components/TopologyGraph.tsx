@@ -316,8 +316,8 @@ export function TopologyGraph({ view, topology, selection, onSelect, ref }: Prop
         <button
           type="button"
           className="btn btn-ghost bg-slate-900/90 px-2.5"
-          title="Rétablir la disposition hiérarchique"
-          aria-label="Rétablir la disposition hiérarchique"
+          title="Reset the hierarchical layout"
+          aria-label="Reset the hierarchical layout"
           onClick={resetLayout}
         >
           <LayoutIcon />
@@ -325,8 +325,8 @@ export function TopologyGraph({ view, topology, selection, onSelect, ref }: Prop
         <button
           type="button"
           className="btn btn-ghost bg-slate-900/90 px-2.5"
-          title="Ajuster à l'écran"
-          aria-label="Ajuster à l'écran"
+          title="Fit to screen"
+          aria-label="Fit to screen"
           onClick={() => graphRef.current && fitGraph(graphRef.current)}
         >
           <FitIcon />

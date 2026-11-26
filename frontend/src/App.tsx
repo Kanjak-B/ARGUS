@@ -15,9 +15,9 @@ import { useArgusData } from './useArgusData'
 import type { View } from './views'
 
 const TABS = [
-  { id: 'topology', label: 'Topologie', Icon: NetworkIcon },
-  { id: 'devices', label: 'Équipements', Icon: ServerIcon },
-  { id: 'history', label: 'Historique', Icon: HistoryIcon },
+  { id: 'topology', label: 'Topology', Icon: NetworkIcon },
+  { id: 'devices', label: 'Devices', Icon: ServerIcon },
+  { id: 'history', label: 'History', Icon: HistoryIcon },
 ] as const
 
 type Tab = (typeof TABS)[number]['id']
@@ -61,32 +61,32 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
         <p
           role="status"
           className="flex items-center gap-2 px-2 text-xs text-slate-400 md:mt-auto md:px-4 md:py-2"
-          title={live ? 'Mises à jour en direct' : 'Connexion au serveur interrompue'}
+          title={live ? 'Live updates' : 'Server connection lost'}
         >
           <span
             className={`size-2 shrink-0 rounded-full ${live ? 'animate-pulse bg-emerald-400' : 'bg-amber-400'}`}
           />
-          <span className="sr-only md:not-sr-only">{live ? 'En direct' : 'Reconnexion…'}</span>
+          <span className="sr-only md:not-sr-only">{live ? 'Live' : 'Reconnecting…'}</span>
         </p>
         <button
           type="button"
           className="btn justify-start text-slate-400 hover:bg-white/5 hover:text-white"
           onClick={logout}
-          aria-label="Se déconnecter"
+          aria-label="Sign out"
         >
           <LogoutIcon />
-          <span className="hidden md:inline">Se déconnecter</span>
+          <span className="hidden md:inline">Sign out</span>
         </button>
       </nav>
 
       <main className="min-w-0 flex-1 overflow-y-auto p-4 md:p-6">
         {error && (
           <p role="alert" className="mb-4 rounded-lg border border-amber-400/30 bg-amber-400/10 px-4 py-2 text-sm text-amber-200">
-            {error} — les données affichées peuvent être anciennes.
+            {error} — the data shown may be outdated.
           </p>
         )}
         {!devices || !topology ? (
-          !error && <p className="text-sm text-slate-500">Chargement…</p>
+          !error && <p className="text-sm text-slate-500">Loading…</p>
         ) : tab === 'topology' ? (
           <TopologyPage
             devices={devices}

@@ -76,13 +76,13 @@ async function request<T>(method: string, url: string, body?: unknown): Promise<
       body: body ? JSON.stringify(body) : undefined,
     })
   } catch {
-    throw new ApiError('Serveur injoignable', 0)
+    throw new ApiError('Server unreachable', 0)
   }
 
   if (!response.ok) {
     const payload = await response.json().catch(() => null)
     const detail = typeof payload?.detail === 'string' ? payload.detail : null
-    throw new ApiError(detail ?? `Erreur ${response.status}`, response.status)
+    throw new ApiError(detail ?? `Error ${response.status}`, response.status)
   }
 
   // Une réponse 204 peut annoncer du JSON tout en ayant un corps vide
@@ -103,5 +103,5 @@ export const api = {
 }
 
 export function errorMessage(error: unknown) {
-  return error instanceof Error ? error.message : 'Erreur inattendue'
+  return error instanceof Error ? error.message : 'Unexpected error'
 }

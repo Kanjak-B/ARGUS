@@ -4,13 +4,15 @@ ARGUS est une application web qui découvre la topologie d'un réseau en interro
 
 > **Statut : prototype.** Destiné à un lab (testé sur GNS3), pas à la production.
 
+L'interface est en anglais ; la documentation est en français.
+
 ## Fonctionnalités
 
 - Gestion des équipements à surveiller depuis l'interface.
 - **Graphe hiérarchique** (cœur, distribution, accès) avec les noms des interfaces et les détails au clic.
 - **Temps réel** : l'écran se met à jour dès que le serveur détecte un changement.
 - **Historique** : équipement en panne ou rétabli, lien perdu ou ajouté, équipement ajouté, retiré ou renommé.
-- Deux onglets de graphe, **Vue complète** et **En ligne**, avec des exports **image PNG**, **Excel** et **JSON** correspondant à l'onglet ouvert.
+- Deux onglets de graphe, **Full view** et **Online**, avec des exports **image PNG**, **Excel** et **JSON** correspondant à l'onglet ouvert.
 - Découverte LLDP analysée avec `ntc-templates`, collecte en parallèle.
 
 ## Prérequis
@@ -47,25 +49,25 @@ Ouvrir `http://127.0.0.1:8000` et se connecter avec `ARGUS_ADMIN_PASSWORD`.
 
 | Écran | Contenu |
 |---|---|
-| **Topologie** | Graphe, compteurs, scan à la demande, exports |
-| **Équipements** | Ajout et suppression des adresses IP, choix de la couche |
-| **Historique** | Les 200 changements les plus récents |
+| **Topology** | Graphe, compteurs, scan à la demande, exports |
+| **Devices** | Ajout et suppression des adresses IP, choix de la couche |
+| **History** | Les 200 changements les plus récents |
 
-Le réseau est interrogé à intervalle régulier (`ARGUS_MONITOR_INTERVAL`), à l'ajout ou à la suppression d'un équipement, et avec le bouton **Scanner**. « Temps réel » désigne l'affichage : une panne apparaît après le scan qui la détecte. Le premier scan sert de référence et ne produit aucune entrée d'historique.
+Le réseau est interrogé à intervalle régulier (`ARGUS_MONITOR_INTERVAL`), à l'ajout ou à la suppression d'un équipement, et avec le bouton **Scan now**. « Temps réel » désigne l'affichage : une panne apparaît après le scan qui la détecte. Le premier scan sert de référence et ne produit aucune entrée d'historique.
 
-La couche d'un équipement suit cet ordre de priorité : le choix fait dans la page **Équipements**, puis le nom (`CORE`, `DIST` ou `DST`, `ACC`), puis le nombre de liaisons. Ce dernier critère ne désigne jamais un cœur.
+La couche d'un équipement suit cet ordre de priorité : le choix fait dans la page **Devices**, puis le nom (`CORE`, `DIST` ou `DST`, `ACC`), puis le nombre de liaisons. Ce dernier critère ne désigne jamais un cœur.
 
-La page **Topologie** propose deux onglets :
+La page **Topology** propose deux onglets :
 
 | Onglet | Contenu |
 |---|---|
-| **Vue complète** | Tous les équipements (en ligne, en attente, en échec, non gérés) et toutes les liaisons connues |
-| **En ligne** | Les équipements qui répondent et les liaisons dont les deux extrémités sont en ligne |
+| **Full view** | Tous les équipements (en ligne, en attente, en échec, non gérés) et toutes les liaisons connues |
+| **Online** | Les équipements qui répondent et les liaisons dont les deux extrémités sont en ligne |
 
-Les trois exports suivent l'onglet ouvert, et le nom du fichier se termine par `_complete` ou `_en_ligne` :
+Les trois exports suivent l'onglet ouvert, et le nom du fichier se termine par `_full` ou `_online` :
 
 - **Image PNG** : le graphe de l'onglet, avec la disposition à l'écran.
-- **Excel** : une feuille « Équipements » (nom, IP, couche, statut) et une feuille « Liaisons » (une ligne par câble).
+- **Excel** : une feuille « Devices » (nom, IP, couche, statut) et une feuille « Links » (une ligne par câble).
 - **JSON** : `view`, `scanned_at`, `devices` (`name`, `ip`, `layer`, `status`, `model`) et `links` (`device_a`, `interface_a`, `device_b`, `interface_b`).
 
 La documentation de l'API est disponible sur `/docs`. Les journaux sont écrits sur la sortie d'erreur ; en `DEBUG`, ARGUS journalise les réponses brutes des équipements : à ne pas partager sans relecture.
@@ -141,7 +143,7 @@ Les protections sont dimensionnées pour un **lab**.
 - Une sortie LLDP non reconnue par `ntc-templates` place l'équipement en échec.
 - Si le détail LLDP n'indique pas le port local, il est lu dans `show lldp neighbors` ; une correspondance ambiguë (noms identiques sur leurs 20 premiers caractères et même port distant) place l'équipement en échec.
 - Un voisin qui n'annonce pas de nom est identifié par son Chassis ID.
-- Un équipement qui n'a jamais répondu n'a pas de nom connu : il apparaît par son adresse IP, et les liens annoncés par ses voisins restent rattachés à un nœud « non géré ».
+- Un équipement qui n'a jamais répondu n'a pas de nom connu : il apparaît par son adresse IP, et les liens annoncés par ses voisins restent rattachés à un nœud « Unmanaged ».
 - La couche d'un voisin non géré ne peut pas être choisie.
 - Les positions des nœuds déplacés à la main sont perdues au rechargement de la page.
 - Le champ `model` contient le début de la ligne de version logicielle, pas le modèle matériel.

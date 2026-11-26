@@ -12,15 +12,32 @@ def _links(info):
     return {(n["local_interface"], n["name"], n["remote_interface"]) for n in info["neighbors"]}
 
 
-def _change(kind, message, ip, device, **details):
-    return {"type": kind, "message": message, "details": {"ip": ip, "device": device, **details}}
+_LINK = "{device} {local_interface} → {neighbor} {remote_interface}"
+_MESSAGES = {
+    "device_added": "New device: {device}",
+    "device_removed": "Device removed from monitoring: {device}",
+    "device_failed": "Device failed: {device}",
+    "device_recovered": "Device recovered: {device}",
+    "device_renamed": "Device renamed: {previous_device} → {device}",
+    "link_added": "Link added: " + _LINK,
+    "link_removed": "Link lost: " + _LINK,
+}
 
 
-def _link_change(kind, verb, ip, device, link):
+def describe(kind, details):
+    """Texte affiché à l'utilisateur, toujours recalculé à partir des données."""
+    return _MESSAGES[kind].format(**details)
+
+
+def _change(kind, ip, device, **details):
+    details = {"ip": ip, "device": device, **details}
+    return {"type": kind, "message": describe(kind, details), "details": details}
+
+
+def _link_change(kind, ip, device, link):
     local_interface, neighbor, remote_interface = link
     return _change(
         kind,
-        f"Lien {verb} : {device} {local_interface} → {neighbor} {remote_interface}",
         ip,
         device,
         local_interface=local_interface,
@@ -38,45 +55,30 @@ def detect_changes(previous, current):
     changes = []
 
     for ip in sorted(old.keys() - new.keys()):
-        name = old[ip][0]
-        changes.append(
-            _change("device_removed", f"Équipement retiré de la surveillance : {name}", ip, name)
-        )
+        changes.append(_change("device_removed", ip, old[ip][0]))
 
     for ip in sorted(new):
         name, info = new[ip]
         old_name, old_info = old.get(ip, (ip, None))
 
         if ip not in old:
-            changes.append(_change("device_added", f"Nouvel équipement : {name}", ip, name))
+            changes.append(_change("device_added", ip, name))
             if info is None:
-                changes.append(_change("device_failed", f"Équipement en échec : {name}", ip, name))
+                changes.append(_change("device_failed", ip, name))
         elif info is None:
             if old_info is not None:
-                changes.append(
-                    _change("device_failed", f"Équipement en échec : {old_name}", ip, old_name)
-                )
+                changes.append(_change("device_failed", ip, old_name))
         elif old_info is None:
-            changes.append(_change("device_recovered", f"Équipement rétabli : {name}", ip, name))
+            changes.append(_change("device_recovered", ip, name))
         else:
             if name != old_name:
-                changes.append(
-                    _change(
-                        "device_renamed",
-                        f"Équipement renommé : {old_name} → {name}",
-                        ip,
-                        name,
-                        previous_device=old_name,
-                    )
-                )
+                changes.append(_change("device_renamed", ip, name, previous_device=old_name))
             before, after = _links(old_info), _links(info)
             changes += [
-                _link_change("link_removed", "perdu", ip, name, link)
-                for link in sorted(before - after)
+                _link_change("link_removed", ip, name, link) for link in sorted(before - after)
             ]
             changes += [
-                _link_change("link_added", "ajouté", ip, name, link)
-                for link in sorted(after - before)
+                _link_change("link_added", ip, name, link) for link in sorted(after - before)
             ]
 
     return changes

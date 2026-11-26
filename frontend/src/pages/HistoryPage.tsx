@@ -2,26 +2,26 @@ import type { Change, ChangeType } from '../api'
 import { HistoryIcon } from '../components/Icons'
 
 const KINDS: Record<ChangeType, { label: string; badge: string; dot: string }> = {
-  device_failed: { label: 'Panne', badge: 'bg-red-400/10 text-red-300', dot: 'bg-red-400' },
-  link_removed: { label: 'Lien perdu', badge: 'bg-red-400/10 text-red-300', dot: 'bg-red-400' },
+  device_failed: { label: 'Failure', badge: 'bg-red-400/10 text-red-300', dot: 'bg-red-400' },
+  link_removed: { label: 'Link lost', badge: 'bg-red-400/10 text-red-300', dot: 'bg-red-400' },
   device_recovered: {
-    label: 'Rétablissement',
+    label: 'Recovery',
     badge: 'bg-emerald-400/10 text-emerald-300',
     dot: 'bg-emerald-400',
   },
   link_added: {
-    label: 'Lien ajouté',
+    label: 'Link added',
     badge: 'bg-emerald-400/10 text-emerald-300',
     dot: 'bg-emerald-400',
   },
-  device_added: { label: 'Ajout', badge: 'bg-cyan-400/10 text-cyan-300', dot: 'bg-cyan-400' },
+  device_added: { label: 'Added', badge: 'bg-cyan-400/10 text-cyan-300', dot: 'bg-cyan-400' },
   device_removed: {
-    label: 'Retrait',
+    label: 'Removed',
     badge: 'bg-slate-400/10 text-slate-300',
     dot: 'bg-slate-400',
   },
   device_renamed: {
-    label: 'Renommage',
+    label: 'Renamed',
     badge: 'bg-amber-400/10 text-amber-300',
     dot: 'bg-amber-400',
   },
@@ -30,7 +30,7 @@ const KINDS: Record<ChangeType, { label: string; badge: string; dot: string }> =
 function groupByDay(changes: Change[]) {
   const days = new Map<string, Change[]>()
   for (const change of changes) {
-    const day = new Date(change.created_at).toLocaleDateString('fr-FR', { dateStyle: 'full' })
+    const day = new Date(change.created_at).toLocaleDateString('en-GB', { dateStyle: 'full' })
     days.set(day, [...(days.get(day) ?? []), change])
   }
   return [...days]
@@ -40,17 +40,17 @@ export function HistoryPage({ changes, limit }: { changes: Change[]; limit: numb
   return (
     <div className="mx-auto max-w-4xl space-y-5">
       <header>
-        <h1 className="text-2xl font-semibold text-white">Historique</h1>
+        <h1 className="text-2xl font-semibold text-white">History</h1>
         <p className="text-sm text-slate-400">
-          Changements détectés sur le réseau, du plus récent au plus ancien.
+          Changes detected on the network, newest first.
         </p>
       </header>
 
       {changes.length === 0 ? (
         <div className="panel flex flex-col items-center gap-2 p-10 text-center">
           <HistoryIcon className="size-10 text-slate-600" />
-          <p className="text-sm text-slate-400">Aucun changement enregistré pour le moment.</p>
-          <p className="text-xs text-slate-500">Le premier scan sert de référence.</p>
+          <p className="text-sm text-slate-400">No changes recorded yet.</p>
+          <p className="text-xs text-slate-500">The first scan is used as the baseline.</p>
         </div>
       ) : (
         groupByDay(changes).map(([day, entries]) => (
@@ -75,7 +75,7 @@ export function HistoryPage({ changes, limit }: { changes: Change[]; limit: numb
                       className="shrink-0 text-xs text-slate-500 tabular-nums"
                       dateTime={change.created_at}
                     >
-                      {new Date(change.created_at).toLocaleTimeString('fr-FR')}
+                      {new Date(change.created_at).toLocaleTimeString('en-GB')}
                     </time>
                   </li>
                 )
@@ -87,7 +87,7 @@ export function HistoryPage({ changes, limit }: { changes: Change[]; limit: numb
 
       {changes.length >= limit && (
         <p className="text-center text-xs text-slate-500">
-          Seuls les {limit} changements les plus récents sont affichés.
+          Only the {limit} most recent changes are shown.
         </p>
       )}
     </div>

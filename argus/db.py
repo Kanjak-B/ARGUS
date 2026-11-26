@@ -5,6 +5,8 @@ import sqlite3
 from contextlib import contextmanager
 from datetime import datetime, timezone
 
+from argus.changes import describe
+
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS devices (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -123,8 +125,13 @@ class Database:
     def list_changes(self, limit=100):
         with self._connect() as conn:
             rows = conn.execute(
-                "SELECT id, created_at, type, message, details FROM changes "
-                "ORDER BY id DESC LIMIT ?",
+                "SELECT id, created_at, type, details FROM changes ORDER BY id DESC LIMIT ?",
                 (limit,),
             ).fetchall()
-        return [{**dict(row), "details": json.loads(row["details"])} for row in rows]
+        changes = []
+        for row in rows:
+            details = json.loads(row["details"])
+            # Recalculé : les entrées enregistrées dans une autre langue suivent l'interface
+            message = describe(row["type"], details)
+            changes.append({**dict(row), "message": message, "details": details})
+        return changes

@@ -1,9 +1,9 @@
 import type { Layer, Topology } from './api'
 
 export const LAYERS: { id: Layer; label: string }[] = [
-  { id: 'core', label: 'Cœur' },
+  { id: 'core', label: 'Core' },
   { id: 'distribution', label: 'Distribution' },
-  { id: 'access', label: 'Accès' },
+  { id: 'access', label: 'Access' },
 ]
 
 const COLUMN_WIDTH = 230

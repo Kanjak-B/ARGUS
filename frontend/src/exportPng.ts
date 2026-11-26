@@ -8,7 +8,7 @@ function loadImage(source: string) {
   return new Promise<HTMLImageElement>((resolve, reject) => {
     const image = new Image()
     image.onload = () => resolve(image)
-    image.onerror = () => reject(new Error("L'image n'a pas pu être générée"))
+    image.onerror = () => reject(new Error('The image could not be generated'))
     image.src = source
   })
 }
@@ -45,7 +45,7 @@ export async function exportPng(cy: Core, caption: string, filename: string) {
   context.fillText(caption, MARGIN, MARGIN)
 
   const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'))
-  if (!blob) throw new Error("L'image est trop grande pour être exportée")
+  if (!blob) throw new Error('The image is too large to export')
 
   const link = document.createElement('a')
   link.href = URL.createObjectURL(blob)

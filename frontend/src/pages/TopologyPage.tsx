@@ -72,7 +72,7 @@ export function TopologyPage({
     const stamp = date.toLocaleString('sv-SE').replace(/[-:]/g, '').replace(' ', '_')
     try {
       await graphRef.current!.downloadPng(
-        `ARGUS — ${VIEWS[view].label.toLowerCase()} — ${date.toLocaleString('fr-FR')}`,
+        `ARGUS — ${VIEWS[view].label.toLowerCase()} — ${date.toLocaleString('en-GB')}`,
         `topology_${stamp}_${VIEWS[view].fileSuffix}.png`,
       )
       setImageError(null)
@@ -95,33 +95,33 @@ export function TopologyPage({
   }
 
   const lastScan = topology.scanned_at
-    ? `Dernier scan : ${new Date(topology.scanned_at).toLocaleString('fr-FR')}`
-    : 'Aucun scan pour le moment'
-  const problem = imageError ?? scanError ?? (topology.last_error && `Dernier scan : ${topology.last_error}`)
+    ? `Last scan: ${new Date(topology.scanned_at).toLocaleString('en-GB')}`
+    : 'No scan yet'
+  const problem = imageError ?? scanError ?? (topology.last_error && `Last scan: ${topology.last_error}`)
 
   return (
     <div className="flex h-full flex-col gap-4">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-white">Topologie</h1>
+          <h1 className="text-2xl font-semibold text-white">Topology</h1>
           <p className="text-sm text-slate-400">{lastScan}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
             className="btn btn-ghost"
-            title={`Image de l'onglet « ${VIEWS[view].label} »`}
+            title={`Image of the “${VIEWS[view].label}” tab`}
             onClick={downloadImage}
             disabled={!canExport || !hasNodes}
           >
             <DownloadIcon />
-            Image PNG
+            PNG image
           </button>
           <ExportLink href={exportUrl('xlsx')} label="Excel" enabled={canExport} />
           <ExportLink href={exportUrl('json')} label="JSON" enabled={canExport} />
           <button type="button" className="btn btn-primary" onClick={scan} disabled={topology.scanning}>
             <RefreshIcon className={`size-4 ${topology.scanning ? 'animate-spin' : ''}`} />
-            {topology.scanning ? 'Scan en cours…' : 'Scanner'}
+            {topology.scanning ? 'Scanning…' : 'Scan now'}
           </button>
         </div>
       </header>
@@ -133,15 +133,15 @@ export function TopologyPage({
       )}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Stat label="Équipements" value={devices.length} tone="text-white" />
-        <Stat label="En ligne" value={online} tone="text-emerald-300" />
-        <Stat label="En échec" value={failed} tone={failed ? 'text-red-300' : 'text-slate-500'} />
-        <Stat label="Liaisons" value={visible.edges.length} tone="text-cyan-300" />
+        <Stat label="Devices" value={devices.length} tone="text-white" />
+        <Stat label="Online" value={online} tone="text-emerald-300" />
+        <Stat label="Failed" value={failed} tone={failed ? 'text-red-300' : 'text-slate-500'} />
+        <Stat label="Links" value={visible.edges.length} tone="text-cyan-300" />
       </div>
 
       <div
         role="tablist"
-        aria-label="Vue du graphe"
+        aria-label="Graph view"
         className="flex gap-1 self-start rounded-xl border border-white/10 bg-slate-900/60 p-1"
       >
         {(Object.keys(VIEWS) as View[]).map((id) => (
@@ -165,27 +165,27 @@ export function TopologyPage({
         <section
           role="tabpanel"
           className="panel relative min-h-[26rem] flex-1 overflow-hidden"
-          aria-label={`Graphe du réseau : ${VIEWS[view].label}`}
+          aria-label={`Network graph: ${VIEWS[view].label}`}
         >
           {!hasNodes ? (
             <div className="bg-grid flex size-full min-h-[26rem] flex-col items-center justify-center gap-3 p-6 text-center">
               <NetworkIcon className="size-12 text-slate-600" />
               {topology.nodes.length === 0 ? (
                 <>
-                  <p className="text-lg font-medium text-white">Aucun équipement à afficher</p>
+                  <p className="text-lg font-medium text-white">No devices to display</p>
                   <p className="max-w-sm text-sm text-slate-400">
-                    Ajoute l'adresse IP d'un premier équipement pour découvrir ton réseau.
+                    Add the IP address of a first device to discover your network.
                   </p>
                   <button type="button" className="btn btn-primary" onClick={onManageDevices}>
                     <PlusIcon />
-                    Ajouter un équipement
+                    Add a device
                   </button>
                 </>
               ) : (
                 <>
-                  <p className="text-lg font-medium text-white">Aucun équipement en ligne</p>
+                  <p className="text-lg font-medium text-white">No devices online</p>
                   <p className="max-w-sm text-sm text-slate-400">
-                    La vue complète montre les équipements en attente ou en échec.
+                    The full view shows pending and failed devices.
                   </p>
                 </>
               )}

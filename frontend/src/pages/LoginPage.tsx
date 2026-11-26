@@ -28,10 +28,10 @@ export function LoginPage({ onLogin }: { onLogin: () => void }) {
             <EyeIcon className="size-8" />
           </span>
           <h1 className="text-2xl font-semibold tracking-[0.3em] text-white">ARGUS</h1>
-          <p className="mt-1 text-sm text-slate-400">Surveillance de topologie réseau</p>
+          <p className="mt-1 text-sm text-slate-400">Network topology monitoring</p>
         </div>
         <label htmlFor="password" className="mb-2 block text-sm font-medium text-slate-300">
-          Mot de passe administrateur
+          Administrator password
         </label>
         <input
           id="password"
@@ -48,7 +48,7 @@ export function LoginPage({ onLogin }: { onLogin: () => void }) {
           </p>
         )}
         <button type="submit" className="btn btn-primary mt-5 w-full" disabled={busy || !password}>
-          {busy ? 'Connexion…' : 'Se connecter'}
+          {busy ? 'Signing in…' : 'Sign in'}
         </button>
       </form>
     </main>

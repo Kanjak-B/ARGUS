@@ -5,12 +5,12 @@ import io
 from openpyxl import Workbook
 
 _STATUS_LABELS = {
-    "ok": "En ligne",
-    "failed": "En échec",
-    "pending": "En attente",
-    "unmanaged": "Non géré",
+    "ok": "Online",
+    "failed": "Failed",
+    "pending": "Pending",
+    "unmanaged": "Unmanaged",
 }
-_LAYER_LABELS = {"core": "Cœur", "distribution": "Distribution", "access": "Accès"}
+_LAYER_LABELS = {"core": "Core", "distribution": "Distribution", "access": "Access"}
 
 
 def build_document(graph, view, scanned_at):
@@ -57,18 +57,18 @@ def _write_sheet(sheet, headers, rows):
 def excel_bytes(document):
     workbook = Workbook()
     devices = workbook.active
-    devices.title = "Équipements"
+    devices.title = "Devices"
     _write_sheet(
         devices,
-        ["Nom", "IP", "Couche", "Statut"],
+        ["Name", "IP", "Layer", "Status"],
         [
             [d["name"], d["ip"], _LAYER_LABELS[d["layer"]], _STATUS_LABELS[d["status"]]]
             for d in document["devices"]
         ],
     )
     _write_sheet(
-        workbook.create_sheet("Liaisons"),
-        ["Équipement A", "Port A", "Équipement B", "Port B"],
+        workbook.create_sheet("Links"),
+        ["Device A", "Port A", "Device B", "Port B"],
         [
             [link["device_a"], link["interface_a"], link["device_b"], link["interface_b"]]
             for link in document["links"]

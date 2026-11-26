@@ -220,9 +220,15 @@ class ScanCycleTests(WebTestCase):
 
         with self.assertLogs("argus.scanner", level="WARNING"):
             self.scan(fake_topology(failed=["192.0.2.1"]))
-        self.assertEqual(self.messages(), ["Équipement en échec : SW1"])
+        self.assertEqual(self.messages(), ["Device failed: SW1"])
         (node,) = self.client.get("/api/topology").json()["nodes"]
         self.assertEqual((node["label"], node["status"]), ("SW1", "failed"))
+
+    def test_history_stored_with_other_wording_is_shown_in_english(self):
+        details = {"ip": "192.0.2.1", "device": "SW1"}
+        old = {"type": "device_failed", "message": "Équipement en échec : SW1", "details": details}
+        self.db.save_scan(fake_topology(), [old])
+        self.assertEqual(self.messages(), ["Device failed: SW1"])
 
     def test_removal_is_immediate_and_not_a_failure(self):
         self.scan(self.healthy)
@@ -230,7 +236,7 @@ class ScanCycleTests(WebTestCase):
         self.assertEqual(self.client.get("/api/topology").json()["nodes"], [])
         with self.assertLogs("argus.scanner", level="WARNING"):
             self.scan(self.healthy)  # le résultat contient encore l'équipement supprimé
-        self.assertEqual(self.messages(), ["Équipement retiré de la surveillance : SW1"])
+        self.assertEqual(self.messages(), ["Device removed from monitoring: SW1"])
 
     def test_scan_error_is_reported_then_cleared(self):
         self.scanner._collect = mock.Mock(side_effect=RuntimeError("boom"))
@@ -267,7 +273,7 @@ class ScanCycleTests(WebTestCase):
         )
 
         complete = self.export("json", "all")
-        self.assertIn("_complete.json", complete.headers["content-disposition"])
+        self.assertIn("_full.json", complete.headers["content-disposition"])
         self.assertEqual(
             {d["name"]: d["status"] for d in complete.json()["devices"]},
             {"SW1": "ok", "SW2": "ok", "192.0.2.3": "failed", "SW-X": "unmanaged"},
@@ -275,7 +281,7 @@ class ScanCycleTests(WebTestCase):
         self.assertEqual(len(complete.json()["links"]), 2)
 
         online = self.export("json", "online")
-        self.assertIn("_en_ligne.json", online.headers["content-disposition"])
+        self.assertIn("_online.json", online.headers["content-disposition"])
         self.assertEqual([d["name"] for d in online.json()["devices"]], ["SW1", "SW2"])
         cable = {
             "device_a": "SW1",
@@ -285,11 +291,11 @@ class ScanCycleTests(WebTestCase):
         }
         self.assertEqual(online.json()["links"], [cable])
 
-        # Un équipement sans aucun câble figure quand même dans la feuille « Équipements »
-        failed_row = ("192.0.2.3", "192.0.2.3", "Accès", "En échec")
-        self.assertIn(failed_row, self.sheets("all")["Équipements"])
-        self.assertEqual(len(self.sheets("online")["Équipements"]), 2)
-        self.assertEqual(self.sheets("online")["Liaisons"], [("SW1", "Gi0/1", "SW2", "Gi0/0")])
+        # Un équipement sans aucun câble figure quand même dans la feuille « Devices »
+        failed_row = ("192.0.2.3", "192.0.2.3", "Access", "Failed")
+        self.assertIn(failed_row, self.sheets("all")["Devices"])
+        self.assertEqual(len(self.sheets("online")["Devices"]), 2)
+        self.assertEqual(self.sheets("online")["Links"], [("SW1", "Gi0/1", "SW2", "Gi0/0")])
 
     def test_neighbor_names_are_never_excel_formulas(self):
         self.scan(fake_topology({"SW1": ("192.0.2.1", [link("Gi0/1", "=1+1", "e0")])}))

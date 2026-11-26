@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-ARGUS is a lab prototype: a web app that collects LLDP neighbors from Cisco IOS devices over SSH, shows the topology as a graph and reports changes live. `README.md` covers setup, configuration variables, security scope and known limitations. Comments, UI text, logs, documentation and commit messages are in French (`ssh_compat.py` is in English).
+ARGUS is a lab prototype: a web app that collects LLDP neighbors from Cisco IOS devices over SSH, shows the topology as a graph and reports changes live. `README.md` covers setup, configuration variables, security scope and known limitations. Everything the user sees is in **English** (UI, API errors, history messages, Excel and PNG content), with `en-GB` date formatting. Comments, terminal logs, documentation and commit messages are in French (`ssh_compat.py` is in English).
 
 ## Commands
 
@@ -45,6 +45,7 @@ Live updates: `scanner.status()["version"]` drives the SSE stream (`/api/events`
 - Real lab IOS images omit `Local Intf` from the detail output. `parse_neighbors` then reads `show lldp neighbors` (names cut at 20 characters; with `R B` capabilities the template's port column keeps a leading `B`, hence the last token). A neighbor must never be stored with an empty local interface: both ends of a cable would no longer merge in `graph.build_graph`. Test parser changes against both output formats.
 - All routes go on the `api` router, which requires a session; only login is declared on `app`. The frontend is mounted last so it does not hide `/api` or `/docs`.
 - The stored topology may still contain a just-deleted device until the next scan, so readers filter it with `graph.restrict` against the inventory.
+- History messages are rebuilt on read by `changes.describe(type, details)`, so rewording them also applies to stored entries; every new change type needs a template there.
 - `detect_changes` compares by device IP, not hostname, and returns nothing when there is no previous topology.
 - JSON and Excel exports are built by `exporters.build_document` from the output of `graph.build_graph`, not from the topology dict, so they match the UI. The "online" view rule exists twice and must stay identical: `graph.online_only` (exports) and `applyView` in `frontend/src/views.ts` (screen and PNG). Layers are assigned before filtering.
 - Neighbor names come from the network: Excel cells are forced to string type to prevent formula injection.

@@ -201,7 +201,7 @@ class ChangeDetectionTests(unittest.TestCase):
 
     def test_lost_and_added_link(self):
         (lost,) = detect_changes(self.reference, topology([]))
-        self.assertEqual(lost["message"], "Lien perdu : SW-DIST-01 Gi0/1 → SW-ACC-01 Gi0/0")
+        self.assertEqual(lost["message"], "Link lost: SW-DIST-01 Gi0/1 → SW-ACC-01 Gi0/0")
         self.assertEqual(lost["details"]["local_interface"], "Gi0/1")
         self.assertEqual(self.types(topology([]), self.reference), ["link_added"])
 
