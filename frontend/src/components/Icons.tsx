@@ -40,6 +40,12 @@ export const ServerIcon = icon(
     <path d="M7 7.5h.01M7 16.5h.01" />
   </>,
 )
+export const HistoryIcon = icon(
+  <>
+    <path d="M4 12a8 8 0 1 0 2.3-5.6L4 8.5M4 4v4.5h4.5" />
+    <path d="M12 8v4l3 2" />
+  </>,
+)
 export const LogoutIcon = icon(<path d="M15 4h4v16h-4M10 16l-4-4 4-4M6 12h10" />)
 export const RefreshIcon = icon(
   <path d="M20 11a8 8 0 0 0-14.9-3M4 4v4h4M4 13a8 8 0 0 0 14.9 3M20 20v-4h-4" />,

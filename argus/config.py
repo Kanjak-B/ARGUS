@@ -15,14 +15,12 @@ class ConfigError(Exception):
 
 @dataclass(frozen=True)
 class Settings:
-    devices: tuple[str, ...]
     username: str
     password: str = field(repr=False)
     secret: str = field(repr=False)
     timeout: int
     session_timeout: int
     monitor_interval: int
-    output_dir: Path
     allow_legacy_ssh: bool
     max_workers: int
     log_level: str
@@ -68,21 +66,16 @@ def load_settings(env_file=PROJECT_ROOT / ".env"):
     """Les variables d'environnement déjà définies priment sur le fichier .env."""
     load_dotenv(env_file)
 
-    devices = tuple(ip.strip() for ip in os.getenv("ARGUS_DEVICES", "").split(",") if ip.strip())
-
     # Un chemin relatif est résolu depuis la racine du projet
-    output_dir = PROJECT_ROOT / (os.getenv("ARGUS_OUTPUT_DIR", "").strip() or "topologies")
     db_path = PROJECT_ROOT / (os.getenv("ARGUS_DB_PATH", "").strip() or "data/argus.db")
 
     return Settings(
-        devices=devices,
         username=_required("ARGUS_USERNAME"),
         password=_required("ARGUS_PASSWORD"),
         secret=os.getenv("ARGUS_SECRET", ""),
         timeout=_positive_int("ARGUS_TIMEOUT", 20),
         session_timeout=_positive_int("ARGUS_SESSION_TIMEOUT", 20),
         monitor_interval=_positive_int("ARGUS_MONITOR_INTERVAL", 60),
-        output_dir=output_dir,
         allow_legacy_ssh=_boolean("ARGUS_ALLOW_LEGACY_SSH", False),
         max_workers=_positive_int("ARGUS_MAX_WORKERS", 10),
         log_level=_log_level("ARGUS_LOG_LEVEL", "INFO"),

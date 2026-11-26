@@ -1,7 +1,14 @@
 import { useCallback, useEffect, useState } from 'react'
-import { api, ApiError } from './api'
-import { EyeIcon, LogoutIcon, NetworkIcon, ServerIcon } from './components/Icons'
+import { api, ApiError, CHANGES_LIMIT } from './api'
+import {
+  EyeIcon,
+  HistoryIcon,
+  LogoutIcon,
+  NetworkIcon,
+  ServerIcon,
+} from './components/Icons'
 import { DevicesPage } from './pages/DevicesPage'
+import { HistoryPage } from './pages/HistoryPage'
 import { LoginPage } from './pages/LoginPage'
 import { TopologyPage } from './pages/TopologyPage'
 import { useArgusData } from './useArgusData'
@@ -9,6 +16,7 @@ import { useArgusData } from './useArgusData'
 const TABS = [
   { id: 'topology', label: 'Topologie', Icon: NetworkIcon },
   { id: 'devices', label: 'Équipements', Icon: ServerIcon },
+  { id: 'history', label: 'Historique', Icon: HistoryIcon },
 ] as const
 
 type Tab = (typeof TABS)[number]['id']
@@ -16,7 +24,7 @@ type Session = 'checking' | 'anonymous' | 'authenticated'
 
 function Dashboard({ onLogout }: { onLogout: () => void }) {
   const [tab, setTab] = useState<Tab>('topology')
-  const { devices, topology, error, refresh } = useArgusData(onLogout)
+  const { devices, topology, changes, error, live, refresh } = useArgusData(onLogout)
 
   const logout = async () => {
     await api.logout().catch(() => {})
@@ -39,16 +47,27 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
             key={id}
             type="button"
             aria-current={tab === id ? 'page' : undefined}
+            aria-label={label}
             className={`btn justify-start ${tab === id ? 'bg-cyan-400/10 text-cyan-200 ring-1 ring-cyan-400/20' : 'text-slate-400 hover:bg-white/5 hover:text-white'}`}
             onClick={() => setTab(id)}
           >
             <Icon />
-            {label}
+            <span className={tab === id ? 'inline' : 'hidden sm:inline'}>{label}</span>
           </button>
         ))}
+        <p
+          role="status"
+          className="flex items-center gap-2 px-2 text-xs text-slate-400 md:mt-auto md:px-4 md:py-2"
+          title={live ? 'Mises à jour en direct' : 'Connexion au serveur interrompue'}
+        >
+          <span
+            className={`size-2 shrink-0 rounded-full ${live ? 'animate-pulse bg-emerald-400' : 'bg-amber-400'}`}
+          />
+          <span className="sr-only md:not-sr-only">{live ? 'En direct' : 'Reconnexion…'}</span>
+        </p>
         <button
           type="button"
-          className="btn justify-start text-slate-400 hover:bg-white/5 hover:text-white md:mt-auto"
+          className="btn justify-start text-slate-400 hover:bg-white/5 hover:text-white"
           onClick={logout}
           aria-label="Se déconnecter"
         >
@@ -72,8 +91,10 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
             refresh={refresh}
             onManageDevices={() => setTab('devices')}
           />
-        ) : (
+        ) : tab === 'devices' ? (
           <DevicesPage devices={devices} refresh={refresh} />
+        ) : (
+          <HistoryPage changes={changes} limit={CHANGES_LIMIT} />
         )}
       </main>
     </div>

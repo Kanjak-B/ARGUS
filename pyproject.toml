@@ -13,14 +13,12 @@ authors = [{ name = "Kanjak" }]
 requires-python = ">=3.10"
 dependencies = [
     "fastapi>=0.115",
-    "graphviz>=0.20",
     "netmiko>=4.0",
     "ntc-templates>=9.4",
     "openpyxl>=3.1",
     # Version figée : ssh_compat modifie des attributs privés de Paramiko
     "paramiko==4.0.0",
     "python-dotenv>=1.0",
-    "tabulate>=0.9",
     "uvicorn>=0.30",
 ]
 

@@ -1,5 +1,4 @@
 import os
-import tempfile
 import threading
 import unittest
 from pathlib import Path
@@ -8,7 +7,7 @@ from unittest import mock
 from argus.changes import detect_changes
 from argus.collector import CollectionError, collect_topology, parse_hostname, parse_neighbors
 from argus.config import ConfigError, load_settings
-from argus.exporters import build_links, export_topology, load_latest_json
+from argus.exporters import build_links
 
 
 def lldp_entry(local_interface, system_name):
@@ -224,13 +223,6 @@ class ChangeDetectionTests(unittest.TestCase):
 
 
 class ExportTests(unittest.TestCase):
-    def test_json_round_trip_creates_output_dir(self):
-        data = topology([])
-        with tempfile.TemporaryDirectory() as tmp:
-            output_dir = Path(tmp) / "missing"
-            export_topology(data, output_dir)
-            self.assertEqual(load_latest_json(output_dir), data)
-
     def test_links(self):
         self.assertEqual(
             build_links(topology(parse_neighbors(LLDP_OUTPUT, no_table))),
@@ -239,11 +231,7 @@ class ExportTests(unittest.TestCase):
 
 
 class ConfigTests(unittest.TestCase):
-    ENV = {
-        "ARGUS_DEVICES": "192.0.2.10, 192.0.2.11,",
-        "ARGUS_USERNAME": "u",
-        "ARGUS_PASSWORD": "p",
-    }
+    ENV = {"ARGUS_USERNAME": "u", "ARGUS_PASSWORD": "p"}
     NO_FILE = Path("missing.env")
 
     def load(self, env):
@@ -252,7 +240,7 @@ class ConfigTests(unittest.TestCase):
 
     def test_defaults(self):
         settings = self.load(self.ENV)
-        self.assertEqual(settings.devices, ("192.0.2.10", "192.0.2.11"))
+        self.assertEqual((settings.host, settings.port), ("127.0.0.1", 8000))
         self.assertFalse(settings.allow_legacy_ssh)
         self.assertNotIn("password", repr(settings))
         self.assertEqual((settings.max_workers, settings.log_level), (10, "INFO"))

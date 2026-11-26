@@ -39,6 +39,25 @@ export interface Topology {
   version: number
 }
 
+export type ChangeType =
+  | 'device_added'
+  | 'device_removed'
+  | 'device_failed'
+  | 'device_recovered'
+  | 'device_renamed'
+  | 'link_added'
+  | 'link_removed'
+
+export interface Change {
+  id: number
+  created_at: string
+  type: ChangeType
+  message: string
+  details: { ip: string; device: string }
+}
+
+export const CHANGES_LIMIT = 200
+
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -79,6 +98,7 @@ export const api = {
   deleteDevice: (id: number) => request<void>('DELETE', `/devices/${id}`),
   setRole: (id: number, role: Layer | null) => request<void>('PATCH', `/devices/${id}`, { role }),
   topology: () => request<Topology>('GET', '/topology'),
+  changes: () => request<Change[]>('GET', `/changes?limit=${CHANGES_LIMIT}`),
   scan: () => request<void>('POST', '/scan'),
 }
 

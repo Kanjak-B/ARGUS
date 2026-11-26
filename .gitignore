@@ -15,7 +15,7 @@ venv/
 !.env.example
 *.log
 
-# Generated topology exports
+# Exports of the former command-line tools
 topologies/
 
 # Application database
