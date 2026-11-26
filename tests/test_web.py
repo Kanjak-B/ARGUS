@@ -242,14 +242,66 @@ class ScanCycleTests(WebTestCase):
         self.scanner.run_once()
         self.assertIsNone(self.scanner.status()["last_error"])
 
-    def test_export(self):
+    def export(self, file_format, view):
+        response = self.client.get(f"/api/export/{file_format}?view={view}")
+        self.assertEqual(response.status_code, 200)
+        return response
+
+    def sheets(self, view):
+        workbook = load_workbook(io.BytesIO(self.export("xlsx", view).content))
+        return {sheet.title: list(sheet.values)[1:] for sheet in workbook}
+
+    def test_export_follows_the_view(self):
         self.assertEqual(self.client.get("/api/export/json").status_code, 404)
+        self.add("192.0.2.2")
+        self.add("192.0.2.3")
+        neighbors = [link("Gi0/1", "SW2", "Gi0/0"), link("Gi0/2", "SW-X", "e0")]
+        self.scan(
+            fake_topology(
+                {
+                    "SW1": ("192.0.2.1", neighbors),
+                    "SW2": ("192.0.2.2", [link("Gi0/0", "SW1", "Gi0/1")]),
+                },
+                failed=["192.0.2.3"],
+            )
+        )
+
+        complete = self.export("json", "all")
+        self.assertIn("_complete.json", complete.headers["content-disposition"])
+        self.assertEqual(
+            {d["name"]: d["status"] for d in complete.json()["devices"]},
+            {"SW1": "ok", "SW2": "ok", "192.0.2.3": "failed", "SW-X": "unmanaged"},
+        )
+        self.assertEqual(len(complete.json()["links"]), 2)
+
+        online = self.export("json", "online")
+        self.assertIn("_en_ligne.json", online.headers["content-disposition"])
+        self.assertEqual([d["name"] for d in online.json()["devices"]], ["SW1", "SW2"])
+        cable = {
+            "device_a": "SW1",
+            "interface_a": "Gi0/1",
+            "device_b": "SW2",
+            "interface_b": "Gi0/0",
+        }
+        self.assertEqual(online.json()["links"], [cable])
+
+        # Un équipement sans aucun câble figure quand même dans la feuille « Équipements »
+        failed_row = ("192.0.2.3", "192.0.2.3", "Accès", "En échec")
+        self.assertIn(failed_row, self.sheets("all")["Équipements"])
+        self.assertEqual(len(self.sheets("online")["Équipements"]), 2)
+        self.assertEqual(self.sheets("online")["Liaisons"], [("SW1", "Gi0/1", "SW2", "Gi0/0")])
+
+    def test_neighbor_names_are_never_excel_formulas(self):
+        self.scan(fake_topology({"SW1": ("192.0.2.1", [link("Gi0/1", "=1+1", "e0")])}))
+        workbook = load_workbook(io.BytesIO(self.export("xlsx", "all").content))
+        cells = [cell for sheet in workbook for row in sheet for cell in row]
+        self.assertIn("=1+1", [cell.value for cell in cells])
+        self.assertNotIn("f", {cell.data_type for cell in cells})
+
+    def test_unknown_format_or_view(self):
         self.scan(self.healthy)
-        self.assertEqual(self.client.get("/api/export/json").json(), self.healthy)
-        content = self.client.get("/api/export/xlsx").content
-        rows = list(load_workbook(io.BytesIO(content)).active.values)
-        self.assertEqual(rows[1], ("SW1", "192.0.2.1", "SW2", "Gi0/1", "Gi0/0", "LLDP"))
         self.assertEqual(self.client.get("/api/export/png").status_code, 404)
+        self.assertEqual(self.client.get("/api/export/json?view=autre").status_code, 422)
 
 
 class FrontendTests(unittest.TestCase):

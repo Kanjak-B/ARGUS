@@ -15,14 +15,15 @@ from pydantic import BaseModel, Field
 
 from argus.config import PROJECT_ROOT
 from argus.db import DuplicateDeviceError
-from argus.exporters import build_links, excel_bytes
-from argus.graph import build_graph, device_status, restrict
+from argus.exporters import build_document, excel_bytes
+from argus.graph import build_graph, device_status, online_only, restrict
 
 SESSION_COOKIE = "argus_session"
 SESSION_LIFETIME = 12 * 3600
 _HEARTBEAT_EVERY = 15
 FRONTEND_DIR = PROJECT_ROOT / "frontend" / "dist"
 
+_VIEW_SUFFIXES = {"all": "complete", "online": "en_ligne"}
 _MEDIA_TYPES = {
     "json": "application/json",
     "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -183,18 +184,23 @@ def create_app(settings, db, scanner, run_scanner=True, frontend_dir=FRONTEND_DI
         )
 
     @api.get("/export/{file_format}")
-    def export(file_format: str):
+    def export(file_format: str, view: Literal["all", "online"] = "all"):
         if file_format not in _MEDIA_TYPES:
             raise HTTPException(404, "Format inconnu")
-        _, topology, _ = inventory_topology()
+        inventory, topology, scanned_at = inventory_topology()
         if topology is None:
             raise HTTPException(404, "Aucune topologie disponible")
 
+        graph = build_graph(inventory, topology)
+        if view == "online":
+            graph = online_only(graph)
+        document = build_document(graph, view, scanned_at)
+
         if file_format == "json":
-            content = json.dumps(topology, indent=4, ensure_ascii=False).encode()
+            content = json.dumps(document, indent=4, ensure_ascii=False).encode()
         else:
-            content = excel_bytes(build_links(topology))
-        filename = f"topology_{topology['timestamp']}.{file_format}"
+            content = excel_bytes(document)
+        filename = f"topology_{topology['timestamp']}_{_VIEW_SUFFIXES[view]}.{file_format}"
         return Response(
             content,
             media_type=_MEDIA_TYPES[file_format],

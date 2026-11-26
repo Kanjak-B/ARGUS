@@ -12,6 +12,7 @@ import { HistoryPage } from './pages/HistoryPage'
 import { LoginPage } from './pages/LoginPage'
 import { TopologyPage } from './pages/TopologyPage'
 import { useArgusData } from './useArgusData'
+import type { View } from './views'
 
 const TABS = [
   { id: 'topology', label: 'Topologie', Icon: NetworkIcon },
@@ -24,6 +25,8 @@ type Session = 'checking' | 'anonymous' | 'authenticated'
 
 function Dashboard({ onLogout }: { onLogout: () => void }) {
   const [tab, setTab] = useState<Tab>('topology')
+  // Conservée ici pour retrouver le même onglet après un passage par une autre page
+  const [view, setView] = useState<View>('all')
   const { devices, topology, changes, error, live, refresh } = useArgusData(onLogout)
 
   const logout = async () => {
@@ -88,6 +91,8 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
           <TopologyPage
             devices={devices}
             topology={topology}
+            view={view}
+            onViewChange={setView}
             refresh={refresh}
             onManageDevices={() => setTab('devices')}
           />

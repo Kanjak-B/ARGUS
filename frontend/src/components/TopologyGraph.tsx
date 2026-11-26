@@ -9,6 +9,7 @@ import type { Topology } from '../api'
 import { exportPng } from '../exportPng'
 import { hierarchicalLayout, type HierarchicalLayout } from '../layout'
 import { STATUS } from '../status'
+import type { View } from '../views'
 import { FitIcon, LayoutIcon } from './Icons'
 
 export interface Selection {
@@ -21,15 +22,16 @@ export interface GraphHandle {
 }
 
 interface Props {
+  /** Chaque vue conserve ses positions. Changer de vue exige un nouveau composant. */
+  view: View
   topology: Topology
   selection: Selection | null
   onSelect: (selection: Selection | null) => void
   ref?: Ref<GraphHandle>
 }
 
-// Positions conservées entre deux affichages de l'onglet, tant que la structure est la même
-const savedPositions = new Map<string, Position>()
-let savedStructure = ''
+// Positions conservées entre deux affichages d'une vue, tant que sa structure est la même
+const savedLayouts = new Map<View, { structure: string; positions: Map<string, Position> }>()
 
 function switchIcon(color: string) {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="10" rx="2"/><path d="M7 12h.01M10.5 12h.01M14 12h.01M17.5 12h.01"/></svg>`
@@ -193,7 +195,6 @@ function createGraph(container: HTMLElement) {
       },
       { selector: 'node:selected', style: { 'border-width': 4, 'underlay-opacity': 0.35 } },
       { selector: 'edge:selected', style: { width: 4, 'line-color': '#22d3ee' } },
-      { selector: '.export-hidden', style: { display: 'none' } },
     ],
   })
 }
@@ -207,14 +208,15 @@ function fitGraph(cy: Core) {
   }
 }
 
-function savePositions(cy: Core) {
-  savedPositions.clear()
+function savePositions(cy: Core, view: View, structure: string) {
+  const positions = new Map<string, Position>()
   cy.nodes().forEach((node) => {
-    savedPositions.set(node.id(), { ...node.position() })
+    positions.set(node.id(), { ...node.position() })
   })
+  savedLayouts.set(view, { structure, positions })
 }
 
-export function TopologyGraph({ topology, selection, onSelect, ref }: Props) {
+export function TopologyGraph({ view, topology, selection, onSelect, ref }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const graphRef = useRef<Core | null>(null)
   const structureRef = useRef<string | null>(null)
@@ -241,7 +243,7 @@ export function TopologyGraph({ topology, selection, onSelect, ref }: Props) {
       onSelectRef.current({ kind: element.isNode() ? 'node' : 'edge', id: element.data('ref') })
     })
     cy.on('dragfree', () => {
-      savePositions(cy)
+      savePositions(cy, view, structureRef.current!)
       bendLongLinks(cy)
     })
 
@@ -257,7 +259,7 @@ export function TopologyGraph({ topology, selection, onSelect, ref }: Props) {
       cy.destroy()
       graphRef.current = null
     }
-  }, [])
+  }, [view])
 
   useEffect(() => {
     const cy = graphRef.current!
@@ -270,22 +272,22 @@ export function TopologyGraph({ topology, selection, onSelect, ref }: Props) {
       return
     }
 
-    const restore = structure === savedStructure
+    const saved = savedLayouts.get(view)
+    const restored = saved?.structure === structure ? saved.positions : undefined
     cy.batch(() => {
       cy.elements().remove()
       cy.add(
         elements.map((element) => {
-          const saved = restore ? savedPositions.get(element.data.id!) : undefined
-          return saved ? { ...element, position: { ...saved } } : element
+          const position = restored?.get(element.data.id!)
+          return position ? { ...element, position: { ...position } } : element
         }),
       )
     })
     structureRef.current = structure
-    savedStructure = structure
-    savePositions(cy)
+    savePositions(cy, view, structure)
     bendLongLinks(cy)
     fitGraph(cy)
-  }, [topology])
+  }, [topology, view])
 
   useEffect(() => {
     const cy = graphRef.current!
@@ -301,7 +303,7 @@ export function TopologyGraph({ topology, selection, onSelect, ref }: Props) {
         if (element.position) cy.getElementById(element.data.id!).position({ ...element.position })
       }
     })
-    savePositions(cy)
+    savePositions(cy, view, structureRef.current!)
     bendLongLinks(cy)
     fitGraph(cy)
   }

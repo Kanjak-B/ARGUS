@@ -7,7 +7,6 @@ from unittest import mock
 from argus.changes import detect_changes
 from argus.collector import CollectionError, collect_topology, parse_hostname, parse_neighbors
 from argus.config import ConfigError, load_settings
-from argus.exporters import build_links
 
 
 def lldp_entry(local_interface, system_name):
@@ -220,14 +219,6 @@ class ChangeDetectionTests(unittest.TestCase):
     def test_rename(self):
         renamed = {**self.reference, "devices": {"SW-NEW": self.reference["devices"]["SW-DIST-01"]}}
         self.assertEqual(self.types(self.reference, renamed), ["device_renamed"])
-
-
-class ExportTests(unittest.TestCase):
-    def test_links(self):
-        self.assertEqual(
-            build_links(topology(parse_neighbors(LLDP_OUTPUT, no_table))),
-            [["SW-DIST-01", "192.0.2.10", "SW-ACC-01", "Gi0/1", "Gi0/0", "LLDP"]],
-        )
 
 
 class ConfigTests(unittest.TestCase):

@@ -10,7 +10,7 @@ ARGUS est une application web qui découvre la topologie d'un réseau en interro
 - **Graphe hiérarchique** (cœur, distribution, accès) avec les noms des interfaces et les détails au clic.
 - **Temps réel** : l'écran se met à jour dès que le serveur détecte un changement.
 - **Historique** : équipement en panne ou rétabli, lien perdu ou ajouté, équipement ajouté, retiré ou renommé.
-- Exports **image PNG**, **Excel** et **JSON**.
+- Deux onglets de graphe, **Vue complète** et **En ligne**, avec des exports **image PNG**, **Excel** et **JSON** correspondant à l'onglet ouvert.
 - Découverte LLDP analysée avec `ntc-templates`, collecte en parallèle.
 
 ## Prérequis
@@ -55,7 +55,18 @@ Le réseau est interrogé à intervalle régulier (`ARGUS_MONITOR_INTERVAL`), à
 
 La couche d'un équipement suit cet ordre de priorité : le choix fait dans la page **Équipements**, puis le nom (`CORE`, `DIST` ou `DST`, `ACC`), puis le nombre de liaisons. Ce dernier critère ne désigne jamais un cœur.
 
-L'**image PNG** ne contient que les équipements qui répondent et les liaisons entre eux, avec leur disposition à l'écran. Les équipements en échec, en attente ou non gérés en sont exclus.
+La page **Topologie** propose deux onglets :
+
+| Onglet | Contenu |
+|---|---|
+| **Vue complète** | Tous les équipements (en ligne, en attente, en échec, non gérés) et toutes les liaisons connues |
+| **En ligne** | Les équipements qui répondent et les liaisons dont les deux extrémités sont en ligne |
+
+Les trois exports suivent l'onglet ouvert, et le nom du fichier se termine par `_complete` ou `_en_ligne` :
+
+- **Image PNG** : le graphe de l'onglet, avec la disposition à l'écran.
+- **Excel** : une feuille « Équipements » (nom, IP, couche, statut) et une feuille « Liaisons » (une ligne par câble).
+- **JSON** : `view`, `scanned_at`, `devices` (`name`, `ip`, `layer`, `status`, `model`) et `links` (`device_a`, `interface_a`, `device_b`, `interface_b`).
 
 La documentation de l'API est disponible sur `/docs`. Les journaux sont écrits sur la sortie d'erreur ; en `DEBUG`, ARGUS journalise les réponses brutes des équipements : à ne pas partager sans relecture.
 
@@ -92,7 +103,7 @@ argus/
 ├── changes.py      # détection des changements
 ├── db.py           # SQLite : équipements, dernier état, historique
 ├── graph.py        # nœuds, liens et couches
-├── exporters.py    # export Excel
+├── exporters.py    # exports JSON et Excel
 └── ssh_compat.py   # algorithmes SSH obsolètes
 frontend/           # interface React, TypeScript, Vite, Tailwind, Cytoscape.js
 tests/              # tests unitaires, sans équipement réseau

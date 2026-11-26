@@ -40,12 +40,14 @@ Live updates: `scanner.status()["version"]` drives the SSE stream (`/api/events`
 
 ### Backend
 
-- The **topology dict** returned by `collect_topology` is the contract between modules: `{timestamp, devices: {hostname: {ip, device_type, vendor, model, protocol, neighbors: [{name, local_interface, remote_interface}]}}, failed_devices: [ip]}`. It is stored in the database and is the JSON export format, so changes must stay compatible with stored data.
+- The **topology dict** returned by `collect_topology` is the contract between modules: `{timestamp, devices: {hostname: {ip, device_type, vendor, model, protocol, neighbors: [{name, local_interface, remote_interface}]}}, failed_devices: [ip]}`. It is stored in the database, so changes must stay compatible with stored data.
 - A device that fails at any collection step goes to `failed_devices`; it is never reported with an empty neighbor list. For that reason `parse_neighbors` (ntc-templates on `show lldp neighbors detail`) requires the `Total entries displayed` count to match the parsed entries, because the template returns `[]` for empty or invalid input.
 - Real lab IOS images omit `Local Intf` from the detail output. `parse_neighbors` then reads `show lldp neighbors` (names cut at 20 characters; with `R B` capabilities the template's port column keeps a leading `B`, hence the last token). A neighbor must never be stored with an empty local interface: both ends of a cable would no longer merge in `graph.build_graph`. Test parser changes against both output formats.
 - All routes go on the `api` router, which requires a session; only login is declared on `app`. The frontend is mounted last so it does not hide `/api` or `/docs`.
 - The stored topology may still contain a just-deleted device until the next scan, so readers filter it with `graph.restrict` against the inventory.
 - `detect_changes` compares by device IP, not hostname, and returns nothing when there is no previous topology.
+- JSON and Excel exports are built by `exporters.build_document` from the output of `graph.build_graph`, not from the topology dict, so they match the UI. The "online" view rule exists twice and must stay identical: `graph.online_only` (exports) and `applyView` in `frontend/src/views.ts` (screen and PNG). Layers are assigned before filtering.
+- Neighbor names come from the network: Excel cells are forced to string type to prevent formula injection.
 - Node layers are decided in `graph.py` (manual `role`, then hostname words, then link count; the count never yields `core`). Schema changes need a migration in `Database.__init__`, since users have an existing database.
 - Use `logging`, not `print` (ruff `T20`). Only the `argus` logger hierarchy follows `ARGUS_LOG_LEVEL`; keep Netmiko/Paramiko at `WARNING`, since their debug output can expose secrets.
 - Configuration comes only from environment variables and `.env` (`ARGUS_*`), validated in `config.py`. A new variable also goes in `.env.example` and the README table. Device addresses are not configuration: they are managed in the UI.
@@ -55,6 +57,6 @@ Live updates: `scanner.status()["version"]` drives the SSE stream (`/api/events`
 ### Frontend
 
 - `src/api.ts` mirrors the API response shapes, including change types; update both sides together. FastAPI's 204 responses can declare JSON with an empty body.
-- `src/layout.ts` only places nodes in the layers chosen by the backend. The PNG export (`src/exportPng.ts`) is client-side and keeps only `ok` nodes.
+- `src/layout.ts` only places nodes in the layers chosen by the backend. The PNG export (`src/exportPng.ts`) is client-side and renders the open view. `TopologyGraph` is remounted per view (`key={view}`) and keeps positions separately for each.
 - Cytoscape forces `position: relative` on its container, which beats Tailwind v4 utilities: size the container with `size-full`, never with `absolute inset-0` (the graph collapses to zero height).
 - The UI must work in a lab without Internet access: no external fonts, scripts or images.

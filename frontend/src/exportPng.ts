@@ -13,20 +13,10 @@ function loadImage(source: string) {
   })
 }
 
-/** Image des seuls équipements qui répondent et des liens entre eux. */
-function renderOnline(cy: Core) {
-  const silent = cy.nodes('[status]').filter((node) => node.data('status') !== 'ok')
-  const online = cy.nodes('[status = "ok"]')
-  const emptyTitles = cy
-    .nodes('[layerTitle]')
-    .filter((title) => online.filter(`[layer = "${title.data('layerTitle')}"]`).empty())
-  const hidden = silent.union(emptyTitles)
+function renderGraph(cy: Core) {
   const selected = cy.$(':selected')
-
   selected.unselect()
-  hidden.addClass('export-hidden')
   try {
-    // Le rendu est synchrone : l'écran n'a pas le temps d'afficher cet état intermédiaire
     return cy.png({
       output: 'base64uri',
       full: true,
@@ -36,13 +26,12 @@ function renderOnline(cy: Core) {
       maxHeight: 6000,
     })
   } finally {
-    hidden.removeClass('export-hidden')
     selected.select()
   }
 }
 
 export async function exportPng(cy: Core, caption: string, filename: string) {
-  const graph = await loadImage(renderOnline(cy))
+  const graph = await loadImage(renderGraph(cy))
 
   const canvas = document.createElement('canvas')
   canvas.width = Math.max(graph.width + 2 * MARGIN, 900)

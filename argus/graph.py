@@ -39,6 +39,14 @@ def restrict(topology, ips):
     }
 
 
+def online_only(graph):
+    """Vue « En ligne » : les équipements qui répondent et les liens entre eux."""
+    nodes = [node for node in graph["nodes"] if node["status"] == "ok"]
+    ids = {node["id"] for node in nodes}
+    edges = [e for e in graph["edges"] if e["source"] in ids and e["target"] in ids]
+    return {"nodes": nodes, "edges": edges}
+
+
 def device_status(ip, topology):
     """Retourne 'ok', 'failed' ou 'pending' (pas encore scanné)."""
     if topology:
